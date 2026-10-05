@@ -8,7 +8,7 @@ import { mountPlayer } from './player.js';
 import { renderConnect, renderPhoneHandoff, renderPhonePair, renderSetup } from './screens.js';
 import { EMBED, settings } from './settings.js';
 import { SpotifySource } from './spotify.js';
-import { applyAccent, applyTheme, ensureFonts, THEMES } from './themes.js';
+import { applyAccent, applyTheme, chooseTheme, ensureFonts, syncAutoStyle, THEMES } from './themes.js';
 
 const root = document.documentElement;
 const app = document.getElementById('app');
@@ -20,7 +20,8 @@ if (EMBED) root.dataset.embed = 'true';
 // ?theme=noir switches style (the styles gallery links here); embedded previews don't save it.
 const linkedTheme = params.get('theme');
 if (THEMES.some((t) => t.id === linkedTheme)) {
-  applyTheme(linkedTheme);
+  if (EMBED) applyTheme(linkedTheme);
+  else chooseTheme(linkedTheme);
   if (!EMBED) {
     params.delete('theme');
     history.replaceState(null, '', location.pathname + (params.toString() ? `?${params}` : '') + location.hash);
@@ -41,7 +42,10 @@ settings.on('change', (key) => {
   applySettings();
   if (key === 'theme') ensureFonts();
   if (key === 'theme' || key === 'accent') applyAccent();
+  if (key === 'autoStyle' || key === 'dayTheme' || key === 'nightTheme') syncAutoStyle();
 });
+syncAutoStyle();
+setInterval(syncAutoStyle, 60_000);
 
 const bg = new Background(document.getElementById('bg'));
 

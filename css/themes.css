@@ -73,8 +73,6 @@
   --glow-filter: none;
   --dot: #fff;
   --font-display: 'Bodoni Moda', 'Didot', 'Bodoni 72', Georgia, serif;
-  --display-style: normal;
-  --display-weight: 500;
   --display-transform: uppercase;
   --display-track: 0.16em;
   --wordmark-fill: linear-gradient(#fff, #fff);
@@ -158,11 +156,8 @@
   --glow-filter: drop-shadow(0 0 18px rgba(214, 178, 110, 0.35));
   --dot: #e2c27d;
   --font-display: 'Cormorant Garamond', 'Cormorant', Garamond, serif;
-  --display-style: italic;
-  --display-weight: 500;
-  --display-track: 0;
+  --display-track: -0.05em;
   --wordmark-fill: var(--metal);
-  --brand-size: 31px;
   --title-font: 'Cormorant Garamond', Garamond, serif;
   --title-weight: 600;
   --title-track: 0;
@@ -230,8 +225,6 @@
   --glow-filter: drop-shadow(0 0 14px rgba(207, 227, 255, 0.35));
   --dot: #e8ecf1;
   --font-display: 'Unbounded', 'Geist', sans-serif;
-  --display-style: normal;
-  --display-weight: 700;
   --display-transform: uppercase;
   --display-track: 0.04em;
   --wordmark-fill: var(--metal);
@@ -359,8 +352,6 @@
   --glow-filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.95)) drop-shadow(0 0 22px rgba(var(--accent-rgb), 0.55));
   --dot: rgb(var(--accent-rgb));
   --font-display: 'Space Grotesk', 'Geist', sans-serif;
-  --display-style: normal;
-  --display-weight: 700;
   --display-transform: uppercase;
   --display-track: 0.06em;
   --wordmark-fill: linear-gradient(#fff, #fff);
@@ -408,7 +399,7 @@
   mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.5) 25%, transparent 60%);
 }
 :root[data-theme='neon'] .bg-vignette { background: radial-gradient(130% 100% at 50% 30%, transparent 60%, rgba(0, 0, 0, 0.45) 100%); }
-:root[data-theme='neon'] .brand-name { font-family: var(--font-label); font-weight: 600; text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.8); }
+:root[data-theme='neon'] .brand-name { text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.8); }
 :root[data-theme='neon'] .wordmark { background: none; color: #fff; text-shadow: 0 0 18px rgba(var(--accent-rgb), 0.9), 0 0 60px rgba(var(--accent-rgb), 0.5); }
 :root[data-theme='neon'] .idle-time { background: none; color: #fff; font-family: var(--font-display); font-weight: 300; text-shadow: 0 0 24px rgba(var(--accent-rgb), 0.7); }
 :root[data-theme='neon'] .np-title { text-shadow: 0 0 16px rgba(var(--accent-rgb), 0.45); }
@@ -461,11 +452,7 @@
   --glow-filter: none;
   --dot: #14213d;
   --font-display: 'Playfair Display', 'Didot', Georgia, serif;
-  --display-style: italic;
-  --display-weight: 500;
-  --display-track: -0.01em;
   --wordmark-fill: linear-gradient(#14213d, #14213d);
-  --brand-size: 28px;
   --title-font: 'Playfair Display', 'Didot', Georgia, serif;
   --title-style: italic;
   --title-weight: 500;
@@ -504,6 +491,7 @@
 :root[data-theme='riviera'] .np-album { color: rgb(var(--accent-rgb)); letter-spacing: 0.28em; }
 :root[data-theme='riviera'] .meta::before {
   content: '';
+  grid-column: 1;
   display: block;
   width: 44px;
   height: 5px;
@@ -511,7 +499,7 @@
   border-top: 1px solid rgb(var(--accent-rgb));
   border-bottom: 1px solid rgb(var(--accent-rgb));
 }
-:root[data-theme='riviera'][data-layout='cover'] .meta::before { margin-left: auto; margin-right: auto; }
+:root[data-theme='riviera'][data-layout='cover'] .meta::before { grid-column: 2; margin-left: auto; margin-right: auto; }
 :root[data-theme='riviera']:is([data-layout='lyrics'], [data-layout='stage']) .meta::before { display: none; }
 :root[data-theme='riviera'] .btn { border-radius: 2px; font-size: 13px; letter-spacing: 0.16em; text-transform: uppercase; }
 :root[data-theme='riviera'] :is(.clock, .idle-time) { font-family: var(--font-display); font-style: italic; font-weight: 400; letter-spacing: 0; }

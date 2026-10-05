@@ -204,6 +204,7 @@ export class DemoSource extends Emitter {
     this.shuffle = false;
     this.repeat = 'off';
     this.covers = new Map();
+    this.likes = new Set();
     this.state = null;
   }
 
@@ -299,6 +300,15 @@ export class DemoSource extends Emitter {
 
   async peekNext() {
     return this.info(TRACKS[(this.index + 1) % TRACKS.length]);
+  }
+
+  async isSaved(track) {
+    return this.likes.has(track.uri);
+  }
+
+  async setSaved(track, saved) {
+    if (saved) this.likes.add(track.uri);
+    else this.likes.delete(track.uri);
   }
 
   lyricsFor(track) {

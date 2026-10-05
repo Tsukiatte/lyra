@@ -212,6 +212,21 @@ export class LyricsView {
     }
   }
 
+  // What's being sung right now, for the visualizer: an instrumental gap, or the
+  // current line and the latest word to start.
+  vocalAt(t) {
+    if (this.mode !== 'synced') return null;
+    const it = this.items[this.active];
+    if (!it) return null;
+    if (it.kind === 'gap') return { gap: true };
+    let wordStart = it.start;
+    for (const w of it.words) {
+      if (w.start > t) break;
+      wordStart = w.start;
+    }
+    return { lineStart: it.start, wordStart };
+  }
+
   setActive(i) {
     this.active = i;
     for (let j = 0; j < this.items.length; j++) {

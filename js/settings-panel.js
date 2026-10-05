@@ -1,6 +1,6 @@
 import { icons } from './icons.js';
 import { SCHEMA, settings } from './settings.js';
-import { applyTheme, ensureFonts, THEMES } from './themes.js';
+import { chooseTheme, ensureFonts, THEMES } from './themes.js';
 import { clamp, h } from './util.js';
 
 let current = null;
@@ -60,14 +60,23 @@ export function openSettings(opts = {}) {
 }
 
 function row(item, watch) {
-  if (item.type === 'themes') return h('div', { class: 'row is-stack' }, CONTROLS.themes(item, watch));
-  const stacked = item.type === 'segment' || item.type === 'range' || item.type === 'swatches';
-  const value = h('span', { class: 'row-val' });
-  const text = h('div', { class: 'row-text' },
-    h('div', { class: 'row-label' }, item.label),
-    item.hint && !stacked ? h('div', { class: 'row-hint' }, item.hint) : null,
-    item.type === 'range' ? value : null);
-  return h('div', { class: stacked ? 'row is-stack' : 'row' }, text, CONTROLS[item.type](item, watch, value));
+  let el;
+  if (item.type === 'themes') {
+    el = h('div', { class: 'row is-stack' }, CONTROLS.themes(item, watch));
+  } else {
+    const stacked = item.type === 'segment' || item.type === 'range' || item.type === 'swatches';
+    const value = h('span', { class: 'row-val' });
+    const text = h('div', { class: 'row-text' },
+      h('div', { class: 'row-label' }, item.label),
+      item.hint && !stacked ? h('div', { class: 'row-hint' }, item.hint) : null,
+      item.type === 'range' ? value : null);
+    el = h('div', { class: stacked ? 'row is-stack' : 'row' },
+      text,
+      CONTROLS[item.type](item, watch, value),
+      stacked && item.hint ? h('div', { class: 'row-note' }, item.hint) : null);
+  }
+  if (item.showIf) watch(item.showIf, (on) => { el.hidden = !on; });
+  return el;
 }
 
 const CONTROLS = {
@@ -85,7 +94,7 @@ const CONTROLS = {
         h('div', { class: 'tc-lines' }, on, h('div', { class: 'tc-off' }, 'melting into gold')),
         h('span', { class: 'tc-dot' }));
       scene.style.cssText = `background:${p.bg};color:${p.ink};font-family:${p.font};font-weight:${p.weight};--tc-dim:${p.dim};--tc-accent:${p.accent}`;
-      const card = h('button', { class: 'theme-card', role: 'radio', onclick: () => applyTheme(t.id) },
+      const card = h('button', { class: 'theme-card', role: 'radio', onclick: () => chooseTheme(t.id) },
         scene,
         h('div', { class: 'tc-name' }, t.name),
         h('div', { class: 'tc-tag' }, t.tagline));
@@ -95,6 +104,16 @@ const CONTROLS = {
     });
     watch(item.key, (v) => cards.forEach((c) => c.setAttribute('aria-checked', String(c.dataset.value === v))));
     return h('div', { class: 'themes-wrap' }, grid, h('a', { class: 'themes-link', href: 'styles.html' }, 'Compare all styles side by side →'));
+  },
+
+  select(item, watch) {
+    const options = item.options === 'themes' ? THEMES.map((t) => [t.id, t.name]) : item.options;
+    const select = h('select', { class: 'select', 'aria-label': item.label }, options.map(([value, label]) => h('option', { value }, label)));
+    select.addEventListener('change', () => settings.set(item.key, select.value));
+    watch(item.key, (v) => {
+      select.value = v;
+    });
+    return h('span', { class: 'select-wrap' }, select);
   },
 
   toggle(item, watch) {

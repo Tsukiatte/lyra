@@ -8,6 +8,14 @@ Beautiful, perfectly synced lyrics for whatever's playing on Spotify, built for 
 - **Seven styles**: Lumière (frosted glass), Noir (editorial Bodoni), Aurum (champagne gold),
   Chrome (liquid metal), Frost (daylight glass), Neon (midnight glow) and Riviera (cream and
   navy). Compare them live on `styles.html`, or switch in Settings → Style.
+- **Visualizer**: Halo (bars hugging the artwork), Bars or Wave, plus an artwork pulse and an
+  ambient edge glow. It pulses with the singing (word and line timing from the synced lyrics), or
+  with real audio from the microphone where the browser allows it. Browsers can't access
+  Spotify's audio stream directly.
+- **Vinyl mode**: the cover becomes a spinning record that stops when you pause.
+- **Gestures**: tap the artwork to play/pause, swipe it to skip, double-tap to save to Liked Songs.
+- **Lyrics map**: the progress bar shows where the singing is.
+- **Day & night styles**: switch automatically at 7 am and 7 pm.
 - **Four views**: Split, Lyrics, Cover and Stage, all switchable from the dock.
 - **Living backgrounds** tinted by the album art: Aurora (WebGL), Artwork, Tint or pure Black.
 - **Everything is a toggle**: artwork, reflection, controls, clock, text size, typeface, alignment,

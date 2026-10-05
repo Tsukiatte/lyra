@@ -16,7 +16,7 @@ export const THEMES = [
     tagline: 'Frosted glass over living color',
     bg: 'aurora',
     accent: null,
-    preview: { bg: 'radial-gradient(120% 100% at 0% 0%, #3b1d6e, #120c2a 58%, #07070a)', ink: '#ffffff', dim: 'rgba(255,255,255,.34)', font: "'Satoshi', 'Geist', sans-serif", weight: 700, art: 'linear-gradient(135deg, #ff9a62, #b33a72 50%, #3a1863)', radius: '7px', accent: '#c9cfff' },
+    preview: { bg: 'radial-gradient(120% 100% at 0% 0%, #3b1d6e, #120c2a 58%, #07070a)', ink: '#ffffff', dim: 'rgba(255,255,255,.34)', font: "'Satoshi', 'Geist', sans-serif", weight: 900, art: 'linear-gradient(135deg, #ff9a62, #b33a72 50%, #3a1863)', radius: '7px', accent: '#c9cfff' },
   },
   {
     id: 'noir',
@@ -52,7 +52,7 @@ export const THEMES = [
     bg: 'aurora',
     accent: null,
     light: true,
-    preview: { bg: 'radial-gradient(120% 100% at 0% 0%, #e7dcfb, #f4f6fb 55%, #dde8f5)', ink: '#0b0c10', dim: 'rgba(11,12,16,.28)', font: "'Satoshi', 'Geist', sans-serif", weight: 700, art: 'linear-gradient(135deg, #a8c0ff, #f7b2d9 60%, #fde2c8)', radius: '8px', accent: '#4f4fd0' },
+    preview: { bg: 'radial-gradient(120% 100% at 0% 0%, #e7dcfb, #f4f6fb 55%, #dde8f5)', ink: '#0b0c10', dim: 'rgba(11,12,16,.28)', font: "'Satoshi', 'Geist', sans-serif", weight: 900, art: 'linear-gradient(135deg, #a8c0ff, #f7b2d9 60%, #fde2c8)', radius: '8px', accent: '#4f4fd0' },
   },
   {
     id: 'neon',
@@ -83,6 +83,20 @@ export function applyTheme(id) {
   settings.set('theme', theme.id);
   settings.set('bgStyle', theme.bg);
   settings.set('lyricFont', 'theme');
+}
+
+export const isDaytime = (date = new Date()) => date.getHours() >= 7 && date.getHours() < 19;
+
+// Picking a style by hand while day & night styles are on sets the style for the current period.
+export function chooseTheme(id) {
+  if (settings.get('autoStyle')) settings.set(isDaytime() ? 'dayTheme' : 'nightTheme', themeById(id).id);
+  applyTheme(id);
+}
+
+export function syncAutoStyle() {
+  if (!settings.get('autoStyle')) return;
+  const want = themeById(settings.get(isDaytime() ? 'dayTheme' : 'nightTheme')).id;
+  if (settings.get('theme') !== want) applyTheme(want);
 }
 
 export function ensureFonts(ids = [settings.get('theme')]) {

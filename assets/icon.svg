@@ -1,19 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="fill" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#8f8cff"/>
-      <stop offset=".55" stop-color="#cf6ad6"/>
-      <stop offset="1" stop-color="#ff9f7a"/>
+    <linearGradient id="tile" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34373f"/>
+      <stop offset=".58" stop-color="#15161b"/>
+      <stop offset="1" stop-color="#08090b"/>
     </linearGradient>
-    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity=".5"/>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".16"/>
       <stop offset="1" stop-color="#fff" stop-opacity="0"/>
     </linearGradient>
-    <clipPath id="tile"><rect width="64" height="64" rx="16"/></clipPath>
+    <clipPath id="shape"><rect width="64" height="64" rx="15"/></clipPath>
   </defs>
-  <g clip-path="url(#tile)">
-    <rect width="64" height="64" fill="url(#fill)"/>
-    <ellipse cx="32" cy="4" rx="44" ry="30" fill="url(#gloss)"/>
+  <g clip-path="url(#shape)">
+    <rect width="64" height="64" fill="url(#tile)"/>
+    <rect width="64" height="30" fill="url(#sheen)"/>
+    <rect x=".5" y=".5" width="63" height="63" rx="14.5" fill="none" stroke="#fff" stroke-opacity=".1"/>
   </g>
-  <path fill="#fff" d="M32 14c1.24 10.35 7.65 16.76 18 18-10.35 1.24-16.76 7.65-18 18-1.24-10.35-7.65-16.76-18-18 10.35-1.24 16.76-7.65 18-18Z"/>
+  <g transform="translate(11 11) scale(1.75)">
+    <g transform="translate(2.8 0) skewX(-10)" fill="#f5f6f8">
+      <rect x="5" y="3.5" width="4.4" height="17" rx="1.1"/>
+      <rect x="5" y="16.1" width="8.6" height="4.4" rx="1.1"/>
+      <rect x="14.6" y="16.1" width="2.6" height="4.4" rx="1.1" opacity=".55"/>
+      <rect x="18.2" y="16.1" width="1.6" height="4.4" rx=".8" opacity=".28"/>
+    </g>
+  </g>
 </svg>

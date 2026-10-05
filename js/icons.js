@@ -25,7 +25,9 @@ export const icons = {
   laptop: svg(line('M6.8 5.5h10.4A1.8 1.8 0 0 1 19 7.3v6.4a1.8 1.8 0 0 1-1.8 1.8H6.8A1.8 1.8 0 0 1 5 13.7V7.3a1.8 1.8 0 0 1 1.8-1.8ZM3 18.5h18')),
   music: svg(line('M9 18.5V6.2l10-2v12M6.8 16.2a2.3 2.3 0 1 1 0 4.6 2.3 2.3 0 0 1 0-4.6ZM16.8 13.9a2.3 2.3 0 1 1 0 4.6 2.3 2.3 0 0 1 0-4.6Z')),
   refresh: svg(line('M19.5 12a7.5 7.5 0 1 1-2.2-5.3M19.5 4.5v4h-4')),
-  star: svg('<path fill="currentColor" d="M12 4c.55 4.6 3.4 7.45 8 8-4.6.55-7.45 3.4-8 8-.55-4.6-3.4-7.45-8-8 4.6-.55 7.45-3.4 8-8Z"/>'),
+  heart: svg('<path class="h-line" d="M12 20.1c-.3 0-.6-.1-.8-.3C7.6 16.8 3.5 13.3 3.5 9.2c0-2.7 2.1-4.7 4.6-4.7 1.6 0 3 .8 3.9 2.1.9-1.3 2.3-2.1 3.9-2.1 2.5 0 4.6 2 4.6 4.7 0 4.1-4.1 7.6-7.7 10.6-.2.2-.5.3-.8.3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path class="h-fill" d="M12 20.1c-.3 0-.6-.1-.8-.3C7.6 16.8 3.5 13.3 3.5 9.2c0-2.7 2.1-4.7 4.6-4.7 1.6 0 3 .8 3.9 2.1.9-1.3 2.3-2.1 3.9-2.1 2.5 0 4.6 2 4.6 4.7 0 4.1-4.1 7.6-7.7 10.6-.2.2-.5.3-.8.3Z" fill="currentColor"/>'),
+  // Lyra's mark: a slanted L whose base trails off like a line being sung.
+  logo: svg('<g transform="translate(2.8 0) skewX(-10)" fill="currentColor"><rect x="5" y="3.5" width="4.4" height="17" rx="1.1"/><rect x="5" y="16.1" width="8.6" height="4.4" rx="1.1"/><rect x="14.6" y="16.1" width="2.6" height="4.4" rx="1.1" opacity=".55"/><rect x="18.2" y="16.1" width="1.6" height="4.4" rx=".8" opacity=".28"/></g>'),
   copy: svg(line('M9 9h8.5a1.5 1.5 0 0 1 1.5 1.5V19a1.5 1.5 0 0 1-1.5 1.5H9A1.5 1.5 0 0 1 7.5 19v-8.5A1.5 1.5 0 0 1 9 9ZM15.5 9V5.5A1.5 1.5 0 0 0 14 4H5.5A1.5 1.5 0 0 0 4 5.5V14a1.5 1.5 0 0 0 1.5 1.5H7.5')),
 };
 

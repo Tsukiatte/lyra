@@ -30,6 +30,7 @@
       min-height: 100vh;
       color: var(--ink);
       font-family: 'Satoshi', 'Geist', ui-sans-serif, system-ui, sans-serif;
+      font-weight: 500;
       -webkit-font-smoothing: antialiased;
       background:
         radial-gradient(80% 50% at 15% -10%, rgba(120, 90, 220, 0.16), transparent 70%),
@@ -41,7 +42,7 @@
     .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: clamp(32px, 6vw, 72px); }
     .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
     .brand img { width: 34px; height: 34px; border-radius: 10px; }
-    .brand span { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-size: 30px; }
+    .brand span { font-size: 25px; font-weight: 900; letter-spacing: -0.045em; }
     .back {
       height: 44px;
       display: inline-flex;
@@ -58,12 +59,10 @@
     .back:hover { color: var(--ink); background: rgba(255, 255, 255, 0.11); }
     h1 {
       margin: 0;
-      font-family: 'Instrument Serif', Georgia, serif;
-      font-style: italic;
-      font-weight: 400;
-      font-size: clamp(52px, 7.5vw, 112px);
+      font-weight: 900;
+      font-size: clamp(48px, 7vw, 104px);
       line-height: 0.95;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.05em;
       background: linear-gradient(180deg, #fff 30%, rgba(255, 255, 255, 0.55));
       -webkit-background-clip: text;
       background-clip: text;
@@ -114,7 +113,7 @@
     }
     .meta { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 0 4px; }
     .num { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: var(--ink-3); letter-spacing: 0.06em; }
-    .name { margin: 4px 0 2px; font-size: clamp(28px, 2.4vw, 36px); line-height: 1.05; font-weight: 500; letter-spacing: -0.02em; }
+    .name { margin: 4px 0 2px; font-size: clamp(28px, 2.4vw, 36px); line-height: 1.05; font-weight: 800; letter-spacing: -0.02em; }
     .tag { margin: 0; font-size: 16px; color: var(--ink-2); }
     .use {
       flex: none;
@@ -124,7 +123,7 @@
       padding: 0 22px;
       border-radius: 99px;
       font-size: 15px;
-      font-weight: 600;
+      font-weight: 700;
       white-space: nowrap;
       color: #0b0b10;
       background: linear-gradient(180deg, #ffffff 0%, #eeeef3 55%, #d6d6de 100%);

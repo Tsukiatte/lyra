@@ -266,6 +266,29 @@ export class SpotifySource extends Emitter {
     });
   }
 
+  // Liked Songs. Spotify's Feb 2026 API uses /me/library with URIs; fall back to the
+  // older /me/tracks endpoints if an app still runs on those.
+  async isSaved(track) {
+    try {
+      const res = await api('/me/library/contains', { query: { uris: track.uri } });
+      return Array.isArray(res) ? Boolean(res[0]) : null;
+    } catch (err) {
+      if (err.status !== 400 && err.status !== 404) return null;
+      const res = await api('/me/tracks/contains', { query: { ids: track.id } }).catch(() => null);
+      return Array.isArray(res) ? Boolean(res[0]) : null;
+    }
+  }
+
+  async setSaved(track, saved) {
+    const method = saved ? 'PUT' : 'DELETE';
+    try {
+      await api('/me/library', { method, body: { uris: [track.uri] } });
+    } catch (err) {
+      if (err.status !== 400 && err.status !== 404) throw err;
+      await api('/me/tracks', { method, query: { ids: track.id } });
+    }
+  }
+
   async peekNext() {
     const queue = await api('/me/player/queue');
     const item = queue?.queue?.[0];

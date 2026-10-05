@@ -1,7 +1,13 @@
 import { SPOTIFY_CLIENT_ID } from '../config.js';
 import { b64url, randomBytes, sha256, store } from './util.js';
 
-const SCOPES = ['user-read-playback-state', 'user-read-currently-playing', 'user-modify-playback-state'];
+const SCOPES = [
+  'user-read-playback-state',
+  'user-read-currently-playing',
+  'user-modify-playback-state',
+  'user-library-read',
+  'user-library-modify',
+];
 const K_TOKENS = 'lyra.tokens';
 const K_PENDING = 'lyra.pkce';
 const K_CLIENT = 'lyra.clientId';

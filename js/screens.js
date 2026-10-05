@@ -43,7 +43,7 @@ async function qrSvg(text) {
 }
 
 const isLoopback = () => ['127.0.0.1', 'localhost', '[::1]'].includes(location.hostname);
-const mark = (cls = '') => h('span', { class: `mark ${cls}`, html: icons.star });
+const mark = (cls = '') => h('span', { class: `mark ${cls}`, html: icons.logo });
 
 // ── Car: connect screen ─────────────────────────────────────────────────────
 export function renderConnect(app, { notice, onDemo, onPaired, onError }) {

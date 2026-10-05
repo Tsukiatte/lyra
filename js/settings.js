@@ -2,11 +2,21 @@ import { Emitter, store } from './util.js';
 
 export const DEFAULTS = Object.freeze({
   theme: 'lumiere',
+  autoStyle: false,
+  dayTheme: 'frost',
+  nightTheme: 'lumiere',
+  visualizer: 'halo',
+  vizSource: 'sync',
+  artPulse: true,
+  edgeGlow: true,
   layout: 'split',
   showArt: true,
+  artStyle: 'cover',
   reflection: true,
   showInfo: true,
+  showLike: true,
   showProgress: true,
+  lyricsMap: true,
   showControls: true,
   showClock: true,
   showDevice: true,
@@ -100,16 +110,33 @@ const pct = (v) => `${Math.round(v * 100)}%`;
 export const SCHEMA = [
   {
     title: 'Style',
-    items: [{ key: 'theme', type: 'themes', label: 'Style' }],
+    items: [
+      { key: 'theme', type: 'themes', label: 'Style' },
+      { key: 'autoStyle', type: 'toggle', label: 'Day & night styles', hint: 'Switches style at 7 am and 7 pm' },
+      { key: 'dayTheme', type: 'select', label: 'Day style', options: 'themes', showIf: 'autoStyle' },
+      { key: 'nightTheme', type: 'select', label: 'Night style', options: 'themes', showIf: 'autoStyle' },
+    ],
+  },
+  {
+    title: 'Visualizer',
+    items: [
+      { key: 'visualizer', type: 'segment', label: 'Style', options: [['off', 'Off'], ['halo', 'Halo'], ['bars', 'Bars'], ['wave', 'Wave']] },
+      { key: 'vizSource', type: 'segment', label: 'Reacts to', options: [['sync', 'Lyrics'], ['mic', 'Microphone']], hint: 'Lyrics pulses with the singing. Microphone listens to the room for real audio, analyzed on this device only.' },
+      { key: 'artPulse', type: 'toggle', label: 'Artwork pulse' },
+      { key: 'edgeGlow', type: 'toggle', label: 'Ambient edge glow', hint: 'The screen edges breathe with the music' },
+    ],
   },
   {
     title: 'Layout',
     items: [
       { key: 'layout', type: 'segment', label: 'View', options: LAYOUTS },
       { key: 'showArt', type: 'toggle', label: 'Album artwork' },
+      { key: 'artStyle', type: 'segment', label: 'Artwork style', options: [['cover', 'Cover'], ['vinyl', 'Vinyl']], hint: 'Vinyl spins while the music plays. Swipe the artwork to skip, double-tap to like.' },
       { key: 'reflection', type: 'toggle', label: 'Glass reflection', hint: 'A mirrored glow under the artwork' },
       { key: 'showInfo', type: 'toggle', label: 'Song details' },
+      { key: 'showLike', type: 'toggle', label: 'Like button', hint: 'Save songs to your Spotify library' },
       { key: 'showProgress', type: 'toggle', label: 'Progress bar' },
+      { key: 'lyricsMap', type: 'toggle', label: 'Lyrics map', hint: 'Marks where the singing is on the progress bar' },
       { key: 'showControls', type: 'toggle', label: 'Playback controls' },
       { key: 'showClock', type: 'toggle', label: 'Clock' },
       { key: 'showDevice', type: 'toggle', label: 'Now playing on' },

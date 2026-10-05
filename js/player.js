@@ -6,6 +6,7 @@ import { closeSettings, openSettings, settingsOpen } from './settings-panel.js';
 import { EMBED, fmtOffset, LAYOUTS, settings } from './settings.js';
 import { setPalette } from './themes.js';
 import { clamp, fmtTime, h, store } from './util.js';
+import { Visualizer } from './visualizer.js';
 
 const PERF_KEY = 'lyra.perfChecked';
 const LAYOUT_NAMES = Object.fromEntries(LAYOUTS);
@@ -17,6 +18,29 @@ const replay = (el, cls) => {
   void el.offsetWidth;
   el.classList.add(cls);
 };
+
+// Progress-bar background marking where the singing is (merged lyric lines).
+function lyricsMap(result, duration) {
+  if (result?.kind !== 'synced' || !duration) return '';
+  const spans = [];
+  for (const line of result.lines) {
+    if (line.gap) continue;
+    const a = line.start / duration;
+    const b = Math.min(1, line.end / duration);
+    const last = spans[spans.length - 1];
+    if (last && a - last[1] < 0.006) last[1] = b;
+    else spans.push([a, b]);
+  }
+  const pct = (v) => `${(v * 100).toFixed(2)}%`;
+  const stops = [];
+  let at = 0;
+  for (const [a, b] of spans) {
+    stops.push(`transparent ${pct(at)}`, `transparent ${pct(a)}`, `var(--map) ${pct(a)}`, `var(--map) ${pct(b)}`);
+    at = b;
+  }
+  stops.push(`transparent ${pct(at)}`, 'transparent 100%');
+  return `linear-gradient(90deg, ${stops.join(', ')})`;
+}
 
 function friendly(err) {
   if (err?.reason === 'NO_ACTIVE_DEVICE' || err?.status === 404) return 'No active Spotify device';
@@ -50,14 +74,17 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
   const artA = h('img', { alt: '', crossorigin: 'anonymous' });
   const artB = h('img', { alt: '', crossorigin: 'anonymous' });
   const art = h('div', { class: 'art is-empty' }, artA, artB, h('div', { class: 'art-ph', html: icons.music }), h('div', { class: 'art-sheen' }));
-  const artWrap = h('div', { class: 'art-wrap', title: 'Play / pause', onclick: togglePlay }, art);
+  const artHeart = h('div', { class: 'art-heart', html: icons.heart });
+  const artWrap = h('div', { class: 'art-wrap', title: 'Tap to play or pause · swipe to skip · double-tap to like' }, art, artHeart);
 
   const albumEl = h('div', { class: 'np-album' });
   const titleEl = h('div', { class: 'np-title' }, h('span'));
   const artistEl = h('div', { class: 'np-artist' });
-  const meta = h('div', { class: 'meta' }, albumEl, titleEl, artistEl);
+  const likeBtn = h('button', { class: 'like', 'aria-label': 'Save to Liked Songs', title: 'Like', html: icons.heart, hidden: true, onclick: () => toggleLike() });
+  const meta = h('div', { class: 'meta' }, albumEl, titleEl, artistEl, likeBtn);
 
-  const bar = h('div', { class: 'bar', role: 'slider', 'aria-label': 'Seek' }, h('div', { class: 'bar-fill' }), h('div', { class: 'bar-knob' }));
+  const barMap = h('div', { class: 'bar-map' });
+  const bar = h('div', { class: 'bar', role: 'slider', 'aria-label': 'Seek' }, barMap, h('div', { class: 'bar-fill' }), h('div', { class: 'bar-knob' }));
   const elapsed = h('span', {}, '0:00');
   const remaining = h('span', {}, '-0:00');
   const progress = h('div', { class: 'progress' }, bar, h('div', { class: 'times' }, elapsed, remaining));
@@ -90,7 +117,7 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
     dockBtn(icons.sliders, 'Settings', showSettings));
   const clock = h('div', { class: 'clock' });
   const topbar = h('header', { class: 'topbar' },
-    h('div', { class: 'brand' }, h('span', { class: 'mark', html: icons.star }), h('span', { class: 'brand-name' }, 'Lyra')),
+    h('div', { class: 'brand' }, h('span', { class: 'mark', html: icons.logo }), h('span', { class: 'brand-name' }, 'Lyra')),
     device, status, h('div', { class: 'grow' }), dock, clock);
 
   const upImg = h('img', { alt: '' });
@@ -106,12 +133,14 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
   const fatal = h('div', { class: 'fatal', hidden: true });
   const toasts = h('div', { class: 'toasts', 'aria-live': 'polite' });
 
-  const root = h('div', { class: 'player', 'data-idle': 'true' }, topbar, np, lyricsEl, upnext, idle, fatal, toasts);
+  const ambient = h('div', { class: 'ambient' });
+  const root = h('div', { class: 'player', 'data-idle': 'true' }, ambient, topbar, np, lyricsEl, upnext, idle, fatal, toasts);
   app.append(root);
 
   const lyrics = new LyricsView(lyricsEl, {
     onSeek: (ms) => run(source.seek(Math.max(0, ms - settings.values.syncOffset + 40))),
   });
+  const viz = new Visualizer({ root, artWrap, art, onNotice: toast });
 
   // ── Playback state ────────────────────────────────────────────────────────
   offs.push(source.on('state', onState));
@@ -171,6 +200,8 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
     replay(meta, 'is-swap');
     requestAnimationFrame(marquee);
     swapArt(s.art);
+    barMap.style.backgroundImage = '';
+    refreshLike(s, mine);
 
     if (s.art) {
       loadImage(s.art).then((img) => {
@@ -190,7 +221,10 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
     lyrics.loading();
     try {
       const result = source.lyricsFor ? source.lyricsFor(s) : await getLyrics(s);
-      if (mine === job) lyrics.set(result);
+      if (mine === job) {
+        lyrics.set(result);
+        barMap.style.backgroundImage = lyricsMap(result, s.durationMs);
+      }
     } catch {
       if (mine === job) lyrics.message('error', { retry: () => setTrack(track) });
     }
@@ -269,13 +303,31 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
     }
   }
 
+  let lastGlow = -1;
+  let lastPulse = -1;
+  function applyEnergy(energy) {
+    const v = settings.values;
+    const glow = v.edgeGlow && !v.lowPower && playing ? 0.12 + energy * 0.88 : 0;
+    if (Math.abs(glow - lastGlow) > 0.01) {
+      lastGlow = glow;
+      ambient.style.opacity = glow.toFixed(3);
+    }
+    const pulse = v.artPulse && !v.lowPower && playing ? 1 + energy * 0.035 : 1;
+    if (Math.abs(pulse - lastPulse) > 0.0008) {
+      lastPulse = pulse;
+      art.style.setProperty('--pulse', pulse.toFixed(4));
+    }
+  }
+
   function frame(now) {
     raf = requestAnimationFrame(frame);
     watchPerformance(now);
-    if (!track || !duration) return;
-    const pos = source.position(now);
-    lyrics.update(pos + settings.values.syncOffset, now, pos / duration);
-    if (scrub) return;
+    const live = Boolean(track && duration);
+    const pos = live ? source.position(now) : 0;
+    const t = pos + settings.values.syncOffset;
+    if (live) lyrics.update(t, now, pos / duration);
+    applyEnergy(viz.frame(now, { playing: live && playing, vocal: live ? lyrics.vocalAt(t) : null, t }));
+    if (!live || scrub) return;
     const pf = pos / duration;
     if (Math.abs(pf - lastPf) > 0.0004) {
       lastPf = pf;
@@ -322,6 +374,92 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
     scrub = null;
     progress.classList.remove('is-scrubbing');
   });
+
+  // ── Artwork gestures: tap = play/pause, swipe = skip, double-tap = like ─────
+  let drag = null;
+  let lastTap = 0;
+  let tapTimer = 0;
+  const settle = () => {
+    art.classList.remove('is-dragging');
+    art.classList.add('is-settling');
+    art.style.setProperty('--swipe', '0px');
+    setTimeout(() => art.classList.remove('is-settling'), 450);
+  };
+  artWrap.addEventListener('pointerdown', (e) => {
+    if (e.button > 0) return;
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY, dx: 0, moved: false };
+  });
+  artWrap.addEventListener('pointermove', (e) => {
+    if (drag?.id !== e.pointerId) return;
+    drag.dx = e.clientX - drag.x;
+    if (!drag.moved && Math.abs(drag.dx) > 10 && Math.abs(drag.dx) > Math.abs(e.clientY - drag.y)) {
+      drag.moved = true;
+      art.classList.add('is-dragging');
+      try {
+        artWrap.setPointerCapture(e.pointerId);
+      } catch {
+        /* pointer already released */
+      }
+    }
+    if (drag.moved) art.style.setProperty('--swipe', `${drag.dx * 0.55}px`);
+  });
+  artWrap.addEventListener('pointerup', (e) => {
+    if (drag?.id !== e.pointerId) return;
+    const { dx, moved } = drag;
+    drag = null;
+    if (moved) {
+      settle();
+      if (Math.abs(dx) > 70) run(dx < 0 ? source.next() : source.prev());
+      return;
+    }
+    const now = performance.now();
+    if (now - lastTap < 300) {
+      clearTimeout(tapTimer);
+      lastTap = 0;
+      replay(artHeart, 'is-burst');
+      if (!liked) toggleLike(true);
+      return;
+    }
+    lastTap = now;
+    tapTimer = setTimeout(() => {
+      lastTap = 0;
+      togglePlay();
+    }, 260);
+  });
+  artWrap.addEventListener('pointercancel', (e) => {
+    if (drag?.id !== e.pointerId) return;
+    drag = null;
+    settle();
+  });
+
+  // ── Liked Songs ───────────────────────────────────────────────────────────
+  let liked = false;
+  async function refreshLike(s, mine) {
+    liked = false;
+    likeBtn.classList.remove('is-on');
+    likeBtn.hidden = !source.isSaved || s.kind !== 'track' || s.isLocal;
+    if (likeBtn.hidden) return;
+    const saved = await source.isSaved(s).catch(() => null);
+    if (mine !== job) return;
+    liked = Boolean(saved);
+    likeBtn.classList.toggle('is-on', liked);
+  }
+
+  async function toggleLike(force) {
+    if (!track || track.kind !== 'track' || likeBtn.hidden) return;
+    const want = force ?? !liked;
+    liked = want;
+    likeBtn.classList.toggle('is-on', want);
+    if (want) replay(likeBtn, 'is-pop');
+    try {
+      await source.setSaved(track, want);
+      toast(want ? 'Saved to Liked Songs' : 'Removed from Liked Songs');
+    } catch (err) {
+      liked = !want;
+      likeBtn.classList.toggle('is-on', liked);
+      toast(err?.status === 403 ? 'Sign in again to let Lyra save songs' : 'Couldn’t update your library');
+    }
+  }
 
   // ── Actions ───────────────────────────────────────────────────────────────
   function run(promise) {
@@ -473,8 +611,10 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
       removeEventListener('resize', marquee);
       removeEventListener('lyra:fonts', relayout);
       offs.forEach((off) => off());
+      clearTimeout(tapTimer);
       source.stop();
       lyrics.destroy();
+      viz.destroy();
       closeSettings();
       root.remove();
     },
