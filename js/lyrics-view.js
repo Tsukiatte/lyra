@@ -382,8 +382,7 @@ export class LyricsView {
     let startOffset = 0;
     let moved = false;
 
-    root.addEventListener('pointerdown', (e) => {
-      if (e.button > 0) return;
+    const begin = (e) => {
       pid = e.pointerId;
       startY = e.clientY;
       startOffset = this.offset;
@@ -392,7 +391,20 @@ export class LyricsView {
       // A press catches a fling mid-flight, like on a phone.
       this.velocity = 0;
       this.glideTo = null;
+    };
+    root.addEventListener('pointerdown', (e) => {
+      if (e.button === 0) begin(e);
     });
+    // Lets a press that started elsewhere (anywhere on screen in immersive mode) scroll the lyrics.
+    this.adoptPress = (e) => {
+      if (e.button > 0 || !scrollable()) return;
+      begin(e);
+      try {
+        root.setPointerCapture(e.pointerId);
+      } catch {
+        /* pointer already gone */
+      }
+    };
     root.addEventListener('pointermove', (e) => {
       if (e.pointerId !== pid || !scrollable()) return;
       const dy = e.clientY - startY;

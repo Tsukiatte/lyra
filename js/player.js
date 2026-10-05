@@ -518,6 +518,8 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
   // Track how far each press travels, so taps and drags can be told apart on release.
   const onPressCapture = (e) => {
     press = { id: e.pointerId, x: e.clientX, y: e.clientY, travel: 0 };
+    // In immersive mode the whole screen scrolls the lyrics, not just the lyrics box.
+    if (immersive && !e.target.closest('.lyrics, .art-wrap, button, a, input, select, .progress')) lyrics.adoptPress(e);
   };
   const onMoveCapture = (e) => {
     if (press?.id !== e.pointerId || !e.buttons) return;

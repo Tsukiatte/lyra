@@ -515,6 +515,7 @@ svg { display: block; width: 100%; height: 100%; }
   grid-template-areas: 'top top' 'np lyrics';
   column-gap: clamp(28px, 5vw, 110px);
   padding: var(--pad-t) var(--pad-x) var(--pad-b);
+  touch-action: none; /* the app owns every gesture: no browser pan or pinch-zoom */
   animation: screen-in 0.9s var(--ease-out);
 }
 
@@ -1432,6 +1433,8 @@ kbd {
 :root[data-visualizer='halo'][data-layout='split'] .np-inner { width: min(100%, 46vh, 500px); }
 .viz-strip { left: 0; bottom: 0; width: 100%; height: 20vh; z-index: -1; opacity: 0.8; }
 :root:is([data-layout='lyrics'], [data-layout='stage']) .viz-strip { height: 16vh; opacity: 0.45; }
+:root[data-visualizer='wave'] .viz-strip { height: 30vh; opacity: 0.9; }
+:root[data-visualizer='wave']:is([data-layout='lyrics'], [data-layout='stage']) .viz-strip { height: 24vh; opacity: 0.6; }
 :root[data-visualizer='halo'] .viz-halo,
 :root[data-visualizer='bars'] .viz-strip,
 :root[data-visualizer='wave'] .viz-strip { display: block; }
