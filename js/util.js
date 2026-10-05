@@ -42,6 +42,30 @@ export const store = {
   },
 };
 
+// A damped spring (px and px/s) for UI motion that has weight and keeps momentum.
+export class Spring {
+  constructor(value = 0, { stiffness = 80, damping = 15, mass = 1 } = {}) {
+    Object.assign(this, { value, target: value, velocity: 0, stiffness, damping, mass });
+  }
+
+  // Advances by dt seconds; returns true once settled on the target.
+  step(dt) {
+    const n = Math.max(1, Math.ceil(dt / 0.004));
+    const h = dt / n;
+    for (let i = 0; i < n; i++) {
+      const force = -this.stiffness * (this.value - this.target) - this.damping * this.velocity;
+      this.velocity += (force / this.mass) * h;
+      this.value += this.velocity * h;
+    }
+    const settled = Math.abs(this.velocity) < 4 && Math.abs(this.value - this.target) < 0.4;
+    if (settled) {
+      this.value = this.target;
+      this.velocity = 0;
+    }
+    return settled;
+  }
+}
+
 export class Emitter {
   #handlers = new Map();
 

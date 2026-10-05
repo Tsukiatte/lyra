@@ -1,13 +1,17 @@
 import { icons } from './icons.js';
 import { SCHEMA, settings } from './settings.js';
 import { chooseTheme, ensureFonts, THEMES } from './themes.js';
-import { clamp, h } from './util.js';
+import { clamp, h, Spring } from './util.js';
 
 let current = null;
 
 export const settingsOpen = () => Boolean(current);
 export const closeSettings = () => current?.close();
 
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// The sheet rides a spring: it opens with weight while the app recedes behind it, can be
+// pulled out from the screen edge (opts.pull) and flung closed, and its scrolling glides.
 export function openSettings(opts = {}) {
   if (current) return current.close();
   const offs = [];
@@ -16,7 +20,8 @@ export function openSettings(opts = {}) {
     fn(settings.get(key));
   };
 
-  const body = h('div', { class: 'sheet-body' });
+  const content = h('div', { class: 'sheet-content' });
+  const body = h('div', { class: 'sheet-body' }, content);
   const backdrop = h('div', { class: 'sheet-backdrop', onclick: () => close() });
   const sheet = h('aside', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Settings' },
     h('header', { class: 'sheet-head' },
@@ -27,35 +32,210 @@ export function openSettings(opts = {}) {
   for (const group of SCHEMA) {
     const card = h('div', { class: 'group-card' });
     for (const item of group.items) card.append(row(item, watch));
-    body.append(h('section', { class: 'group' }, h('h3', {}, group.title), card));
+    content.append(h('section', { class: 'group' }, h('h3', {}, group.title), card));
   }
-  body.append(accountGroup(opts), aboutGroup());
+  content.append(accountGroup(opts), aboutGroup());
 
+  const app = document.getElementById('app');
   document.body.append(backdrop, sheet);
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    backdrop.classList.add('is-open');
-    sheet.classList.add('is-open');
-  }));
+  document.documentElement.classList.add('has-sheet');
+
+  // ── Position on a spring ──────────────────────────────────────────────────
+  let W = sheet.offsetWidth + 40;
+  const spring = new Spring(W, { stiffness: 80, damping: 15 });
+  let raf = 0;
+  let last = 0;
+  let closing = false;
+
+  function render(x) {
+    const p = clamp(1 - x / W, 0, 1);
+    sheet.style.transform = `translate3d(${x.toFixed(2)}px, 0, 0)`;
+    backdrop.style.opacity = p.toFixed(3);
+    if (app) {
+      app.style.transform = p > 0.001 && !settings.values.lowPower
+        ? `translate3d(${(-26 * p).toFixed(2)}px, 0, 0) scale(${(1 - 0.05 * p).toFixed(4)})`
+        : '';
+    }
+  }
+
+  function loop(now) {
+    const settled = spring.step(Math.min(0.05, (now - last) / 1000));
+    last = now;
+    render(spring.value);
+    if (settled) {
+      raf = 0;
+      if (closing) finish();
+      return;
+    }
+    raf = requestAnimationFrame(loop);
+  }
+
+  function animateTo(target, velocity = spring.velocity) {
+    spring.target = target;
+    spring.velocity = velocity;
+    if (reduceMotion()) {
+      spring.value = target;
+      render(target);
+      if (closing) finish();
+      return;
+    }
+    if (!raf) {
+      last = performance.now();
+      raf = requestAnimationFrame(loop);
+    }
+  }
+
+  // ── Dragging: fling to close, or follow a finger pulling it from the edge ──
+  let drag = null;
+  let pending = null;
+  const samples = [];
+
+  function beginDrag(pointerId, startX, x0) {
+    drag = { id: pointerId, startX, x0 };
+    samples.length = 0;
+    cancelAnimationFrame(raf);
+    raf = 0;
+    try {
+      sheet.setPointerCapture(pointerId);
+    } catch {
+      /* pointer already released */
+    }
+  }
+
+  function moveDrag(clientX) {
+    let x = drag.x0 + (clientX - drag.startX);
+    if (x < 0) x = -16 * Math.log1p(-x / 16); // rubber band past fully open
+    spring.value = x;
+    const t = performance.now();
+    samples.push([t, x]);
+    while (samples.length > 2 && t - samples[0][0] > 90) samples.shift();
+    render(x);
+  }
+
+  function endDrag() {
+    const [t0, x0] = samples[0] || [0, 0];
+    const [t1, x1] = samples[samples.length - 1] || [0, 0];
+    const v = t1 > t0 ? ((x1 - x0) / (t1 - t0)) * 1000 : 0;
+    drag = null;
+    if (v > 450 || (spring.value > W * 0.32 && v > -250)) close(v);
+    else animateTo(0, v);
+  }
+
+  sheet.addEventListener('pointerdown', (e) => {
+    if (e.button > 0 || drag || e.target.closest('input, select, .seg')) return;
+    pending = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  });
+  sheet.addEventListener('pointermove', (e) => {
+    if (drag?.id === e.pointerId) return moveDrag(e.clientX);
+    if (pending?.id !== e.pointerId) return;
+    const dx = e.clientX - pending.x;
+    const dy = e.clientY - pending.y;
+    if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      beginDrag(e.pointerId, pending.x, spring.value);
+      pending = null;
+      moveDrag(e.clientX);
+    } else if (Math.abs(dy) > 10) {
+      pending = null;
+    }
+  });
+  const release = (e) => {
+    if (pending?.id === e.pointerId) pending = null;
+    if (drag?.id === e.pointerId) endDrag();
+  };
+  sheet.addEventListener('pointerup', release);
+  sheet.addEventListener('pointercancel', release);
+
+  // ── Heavy scrolling: wheel input glides to a stop and rubber-bands at the ends ─
+  let target = 0;
+  let pos = 0;
+  let glideRaf = 0;
+  let ours = false;
+  const maxScroll = () => body.scrollHeight - body.clientHeight;
+
+  body.addEventListener('wheel', (e) => {
+    if (e.ctrlKey) return;
+    e.preventDefault();
+    if (!glideRaf) target = pos = body.scrollTop;
+    target = clamp(target + e.deltaY * (e.deltaMode === 1 ? 32 : 1), -140, maxScroll() + 140);
+    if (!glideRaf) glideRaf = requestAnimationFrame(glide);
+  }, { passive: false });
+
+  function glide() {
+    const max = maxScroll();
+    if (target < 0) target = target * 0.82 > -0.5 ? 0 : target * 0.82;
+    else if (target > max) target = (target - max) * 0.82 < 0.5 ? max : max + (target - max) * 0.82;
+    pos += (target - pos) * 0.085;
+    const clamped = clamp(pos, 0, max);
+    ours = true;
+    body.scrollTop = clamped;
+    content.style.transform = Math.abs(pos - clamped) > 0.1 ? `translate3d(0, ${((clamped - pos) * 0.45).toFixed(2)}px, 0)` : '';
+    if (Math.abs(target - pos) > 0.3) glideRaf = requestAnimationFrame(glide);
+    else {
+      glideRaf = 0;
+      content.style.transform = '';
+    }
+  }
+
+  body.addEventListener('scroll', () => {
+    if (ours) ours = false;
+    else if (!glideRaf) target = pos = body.scrollTop;
+    sheet.classList.toggle('is-scrolled', body.scrollTop > 6);
+  }, { passive: true });
+
+  // ── Sections drift into place as they come into view ─────────────────────
+  let batch = 0;
+  let batchTimer = 0;
+  let firstBatch = true;
+  const reveal = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      entry.target.style.setProperty('--delay', `${(firstBatch ? 140 : 0) + batch++ * 75}ms`);
+      entry.target.classList.add('is-in');
+      reveal.unobserve(entry.target);
+    }
+    clearTimeout(batchTimer);
+    batchTimer = setTimeout(() => {
+      batch = 0;
+      firstBatch = false;
+    }, 120);
+  }, { root: body, threshold: 0.04 });
+  for (const group of content.querySelectorAll('.group')) {
+    if (reduceMotion()) group.classList.add('is-in');
+    else reveal.observe(group);
+  }
 
   const onKey = (e) => {
     if (e.key === 'Escape') close();
   };
   addEventListener('keydown', onKey);
 
-  function close() {
-    if (current !== handle) return;
-    current = null;
+  function close(velocity = 0) {
+    if (closing) return;
+    closing = true;
+    if (current === handle) current = null;
     removeEventListener('keydown', onKey);
     offs.forEach((off) => off());
-    backdrop.classList.remove('is-open');
-    sheet.classList.remove('is-open');
-    setTimeout(() => {
-      backdrop.remove();
-      sheet.remove();
-    }, 650);
+    reveal.disconnect();
+    backdrop.style.pointerEvents = 'none';
+    W = sheet.offsetWidth + 40;
+    animateTo(W, velocity);
   }
+
+  function finish() {
+    cancelAnimationFrame(glideRaf);
+    backdrop.remove();
+    sheet.remove();
+    if (!current) {
+      if (app) app.style.transform = '';
+      document.documentElement.classList.remove('has-sheet');
+    }
+  }
+
   const handle = { close };
   current = handle;
+  render(W);
+  if (opts.pull) beginDrag(opts.pull.pointerId, opts.pull.startX, W);
+  else requestAnimationFrame(() => animateTo(0));
   return handle;
 }
 

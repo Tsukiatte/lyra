@@ -16,6 +16,10 @@ Beautiful, perfectly synced lyrics for whatever's playing on Spotify, built for 
 - **Gestures**: tap the artwork to play/pause, swipe it to skip, double-tap to save to Liked Songs.
 - **Lyrics map**: the progress bar shows where the singing is.
 - **Day & night styles**: switch automatically at 7 am and 7 pm.
+- **Immersive mode**: tap empty space (or the dock button) and the logo, dock, clock and
+  controls fade away behind a slow zoom; tap anywhere to bring them back. Optional auto mode.
+- **Physical settings sheet**: pull it out from the right edge, fling it closed; it opens on a
+  spring while the app recedes, and scrolling glides with rubber-band ends.
 - **Four views**: Split, Lyrics, Cover and Stage, all switchable from the dock.
 - **Living backgrounds** tinted by the album art: Aurora (WebGL), Artwork, Tint or pure Black.
 - **Everything is a toggle**: artwork, reflection, controls, clock, text size, typeface, alignment,
@@ -86,6 +90,7 @@ detects a slow frame rate.
 | A / Y | Toggle artwork / lyrics |
 | [ / ] | Lyrics timing −/+ 0.1 s |
 | S | Settings |
+| I | Immersive mode |
 | F | Fullscreen |
 
 ## Troubleshooting

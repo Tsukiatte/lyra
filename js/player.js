@@ -10,7 +10,7 @@ import { Visualizer } from './visualizer.js';
 
 const PERF_KEY = 'lyra.perfChecked';
 const LAYOUT_NAMES = Object.fromEntries(LAYOUTS);
-const RELAYOUT = new Set(['theme', 'layout', 'lyricSize', 'lyricFont', 'lyricAlign', 'showArt', 'showInfo', 'showProgress', 'showControls', 'showLyrics', 'reflection']);
+const RELAYOUT = new Set(['theme', 'focusLines', 'layout', 'lyricSize', 'lyricFont', 'lyricAlign', 'showArt', 'showInfo', 'showProgress', 'showControls', 'showLyrics', 'reflection']);
 const WAKE_EVENTS = ['pointermove', 'pointerdown', 'keydown', 'wheel'];
 
 const replay = (el, cls) => {
@@ -113,6 +113,7 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
     dockBtn(icons.layout, 'Switch view', cycleLayout),
     dockBtn(icons.lyrics, 'Lyrics on/off', () => settings.toggle('showLyrics'), 'showLyrics'),
     dockBtn(icons.image, 'Artwork on/off', () => settings.toggle('showArt'), 'showArt'),
+    dockBtn(icons.expand, 'Immersive mode', () => setImmersive(true)),
     h('span', { class: 'dock-sep' }),
     dockBtn(icons.sliders, 'Settings', showSettings));
   const clock = h('div', { class: 'clock' });
@@ -479,15 +480,93 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
     toast(`${LAYOUT_NAMES[next]} view`);
   }
 
-  function showSettings() {
-    openSettings({
+  function settingsOptions() {
+    return {
       demo,
       profile: source.profile?.(),
       onSignOut: () => onExit?.(),
       onExitDemo: () => onExit?.(),
       onClearCache: clearLyricsCache,
-    });
+    };
   }
+
+  function showSettings() {
+    openSettings(settingsOptions());
+  }
+
+  // ── Immersive mode: everything but the music fades away behind a slow zoom ──
+  let immersive = false;
+  let swallow = false;
+  let downAt = null;
+  let hinted = false;
+  let lastActivity = performance.now();
+
+  function setImmersive(on) {
+    if (on === immersive || (on && settingsOpen())) return;
+    immersive = on;
+    root.classList.toggle('is-immersive', on);
+    document.documentElement.dataset.immersive = String(on);
+    if (on && !hinted) {
+      hinted = true;
+      setTimeout(() => immersive && toast('Tap anywhere to bring the controls back'), 1100);
+    }
+    if (!on) wake();
+  }
+
+  // While immersive, the first press only brings the UI back: it never seeks, skips or pauses.
+  const onPressCapture = (e) => {
+    downAt = { x: e.clientX, y: e.clientY };
+    if (!immersive) return;
+    swallow = true;
+    e.stopPropagation();
+  };
+  const onReleaseCapture = (e) => {
+    if (swallow) e.stopPropagation();
+  };
+  const onClickCapture = (e) => {
+    if (swallow) {
+      swallow = false;
+      e.stopPropagation();
+      e.preventDefault();
+      setImmersive(false);
+      return;
+    }
+    const moved = downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 12;
+    if (moved || e.target.closest('button, a, input, select, .ly-line, .ly-gap, .art-wrap, .progress, .dock, .upnext, .fatal')) return;
+    setImmersive(true);
+  };
+  root.addEventListener('pointerdown', onPressCapture, true);
+  root.addEventListener('pointerup', onReleaseCapture, true);
+  root.addEventListener('click', onClickCapture, true);
+
+  const immersiveTimer = setInterval(() => {
+    if (settings.values.autoImmersive && playing && !immersive && !settingsOpen() && performance.now() - lastActivity > 15000) {
+      setImmersive(true);
+    }
+  }, 1000);
+
+  // Pull the settings sheet out from the right edge of the screen.
+  let edge = null;
+  root.addEventListener('pointerdown', (e) => {
+    if (immersive || settingsOpen() || e.clientX < innerWidth - 26) return;
+    edge = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  });
+  const onEdgeMove = (e) => {
+    if (edge?.id !== e.pointerId) return;
+    const dx = e.clientX - edge.x;
+    const dy = e.clientY - edge.y;
+    if (dx < -10 && Math.abs(dx) > Math.abs(dy)) {
+      openSettings({ ...settingsOptions(), pull: { pointerId: e.pointerId, startX: edge.x } });
+      edge = null;
+    } else if (Math.abs(dy) > 16 || dx > 10) {
+      edge = null;
+    }
+  };
+  const onEdgeUp = () => {
+    edge = null;
+  };
+  addEventListener('pointermove', onEdgeMove);
+  addEventListener('pointerup', onEdgeUp);
 
   function toast(text) {
     const t = h('div', { class: 'toast glass' }, text);
@@ -537,6 +616,8 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
       case '[': nudge(-100); break;
       case ']': nudge(100); break;
       case 'f': case 'F': toggleFullscreen(); break;
+      case 'i': case 'I': setImmersive(!immersive); break;
+      case 'Escape': setImmersive(false); break;
       default:
     }
   }
@@ -561,6 +642,7 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
 
   // ── Chrome: auto-hide, clock, relayout ───────────────────────────────────
   function wake() {
+    lastActivity = performance.now();
     root.classList.add('is-awake');
     clearTimeout(wakeTimer);
     wakeTimer = setTimeout(() => root.classList.remove('is-awake'), 3800);
@@ -612,6 +694,10 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
       removeEventListener('lyra:fonts', relayout);
       offs.forEach((off) => off());
       clearTimeout(tapTimer);
+      clearInterval(immersiveTimer);
+      removeEventListener('pointermove', onEdgeMove);
+      removeEventListener('pointerup', onEdgeUp);
+      delete document.documentElement.dataset.immersive;
       source.stop();
       lyrics.destroy();
       viz.destroy();
