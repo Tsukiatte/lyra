@@ -115,7 +115,8 @@ export function openSettings(opts = {}) {
   function endDrag() {
     const [t0, x0] = samples[0] || [0, 0];
     const [t1, x1] = samples[samples.length - 1] || [0, 0];
-    const v = t1 > t0 ? ((x1 - x0) / (t1 - t0)) * 1000 : 0;
+    const fresh = performance.now() - t1 < 80; // a pause before lifting means no fling
+    const v = fresh && t1 > t0 ? ((x1 - x0) / (t1 - t0)) * 1000 : 0;
     drag = null;
     if (v > 450 || (spring.value > W * 0.32 && v > -250)) close(v);
     else animateTo(0, v);

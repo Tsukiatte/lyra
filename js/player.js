@@ -413,6 +413,7 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
       if (Math.abs(dx) > 70) run(dx < 0 ? source.next() : source.prev());
       return;
     }
+    if (e.defaultPrevented) return; // this tap only brought the UI back from immersive mode
     const now = performance.now();
     if (now - lastTap < 300) {
       clearTimeout(tapTimer);
@@ -497,7 +498,7 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
   // ── Immersive mode: everything but the music fades away behind a slow zoom ──
   let immersive = false;
   let swallow = false;
-  let downAt = null;
+  let press = null;
   let hinted = false;
   let lastActivity = performance.now();
 
@@ -514,15 +515,21 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
     if (!on) wake();
   }
 
-  // While immersive, the first press only brings the UI back: it never seeks, skips or pauses.
+  // Track how far each press travels, so taps and drags can be told apart on release.
   const onPressCapture = (e) => {
-    downAt = { x: e.clientX, y: e.clientY };
-    if (!immersive) return;
-    swallow = true;
-    e.stopPropagation();
+    press = { id: e.pointerId, x: e.clientX, y: e.clientY, travel: 0 };
   };
+  const onMoveCapture = (e) => {
+    if (press?.id !== e.pointerId || !e.buttons) return;
+    press.travel = Math.max(press.travel, Math.hypot(e.clientX - press.x, e.clientY - press.y));
+  };
+  // In immersive mode, drags scroll the lyrics as usual. A tap only brings the UI back:
+  // it's marked handled so it never seeks, skips or pauses.
   const onReleaseCapture = (e) => {
-    if (swallow) e.stopPropagation();
+    if (immersive && press?.id === e.pointerId && press.travel < 10) {
+      swallow = true;
+      e.preventDefault();
+    }
   };
   const onClickCapture = (e) => {
     if (swallow) {
@@ -532,11 +539,12 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
       setImmersive(false);
       return;
     }
-    const moved = downAt && Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y) > 12;
-    if (moved || e.target.closest('button, a, input, select, .ly-line, .ly-gap, .art-wrap, .progress, .dock, .upnext, .fatal')) return;
+    if (immersive || (press?.travel ?? 0) >= 10) return;
+    if (e.target.closest('button, a, input, select, .ly-line, .ly-gap, .art-wrap, .progress, .dock, .upnext, .fatal')) return;
     setImmersive(true);
   };
   root.addEventListener('pointerdown', onPressCapture, true);
+  root.addEventListener('pointermove', onMoveCapture, true);
   root.addEventListener('pointerup', onReleaseCapture, true);
   root.addEventListener('click', onClickCapture, true);
 

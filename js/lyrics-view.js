@@ -46,6 +46,9 @@ const MESSAGES = {
   error: [icons.refresh, 'Couldn’t load lyrics', 'Check the connection and try again.'],
 };
 
+// After this long without a touch or scroll, the view glides back to the live line.
+const IDLE_MS = 2000;
+
 // Frame-rate independent easing factor: k is the fraction covered per 60 fps frame.
 const ease = (k, dt) => 1 - Math.pow(1 - k, dt * 60);
 
@@ -341,7 +344,7 @@ export class LyricsView {
       if (this.offset < lo - 0.3 || this.offset > hi + 0.3) {
         this.offset += ((this.offset < lo ? lo : hi) - this.offset) * ease(0.16, dt);
       } else if (this.offset !== 0 && now > this.userUntil) {
-        this.offset += -this.offset * ease(0.05, dt);
+        this.offset += -this.offset * ease(0.065, dt);
         if (Math.abs(this.offset) < 0.4) this.offset = 0;
       }
       if (this.offset === 0 && now > this.userUntil) this.setBrowsing(false);
@@ -410,7 +413,7 @@ export class LyricsView {
       if (next > hi) next = hi + (next - hi) * 0.38;
       else if (next < lo) next = lo + (next - lo) * 0.38;
       this.offset = next;
-      this.userUntil = performance.now() + 4000;
+      this.userUntil = performance.now() + IDLE_MS;
       const t = performance.now();
       samples.push([t, next]);
       while (samples.length > 2 && t - samples[0][0] > 90) samples.shift();
@@ -424,9 +427,11 @@ export class LyricsView {
         root.classList.remove('is-dragging');
         const [t0, y0] = samples[0] || [0, 0];
         const [t1, y1] = samples[samples.length - 1] || [0, 0];
-        this.velocity = t1 > t0 ? clamp(((y1 - y0) / (t1 - t0)) * 1000, -6000, 6000) : 0;
-        this.userUntil = performance.now() + 3500;
-      } else if (!cancelled) {
+        // Only fling if the finger was still moving when it lifted (not after a pause).
+        const fresh = performance.now() - t1 < 80;
+        this.velocity = fresh && t1 > t0 ? clamp(((y1 - y0) / (t1 - t0)) * 1000, -6000, 6000) : 0;
+        this.userUntil = performance.now() + IDLE_MS;
+      } else if (!cancelled && !e.defaultPrevented) {
         this.tap(e.target);
       }
     };
@@ -440,7 +445,7 @@ export class LyricsView {
       this.velocity = 0;
       this.glideTo = clamp(this.glideTo - e.deltaY * (e.deltaMode === 1 ? 32 : 1), lo - 160, hi + 160);
       this.setBrowsing(true);
-      this.userUntil = performance.now() + 3500;
+      this.userUntil = performance.now() + IDLE_MS;
     }, { passive: false });
   }
 
