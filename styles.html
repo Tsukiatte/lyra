@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lyra Styles</title>
+  <meta name="description" content="Seven live looks for Lyra. Pick the one that feels like your car.">
+  <meta name="theme-color" content="#08080a">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400..600&family=Instrument+Serif:ital@0;1&display=swap">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08080a;
+      --ink: #f5f5f7;
+      --ink-2: rgba(245, 245, 247, 0.66);
+      --ink-3: rgba(245, 245, 247, 0.42);
+      --line: rgba(255, 255, 255, 0.08);
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--bg); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: 'Geist', ui-sans-serif, system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      background:
+        radial-gradient(80% 50% at 15% -10%, rgba(120, 90, 220, 0.16), transparent 70%),
+        radial-gradient(60% 40% at 100% 0%, rgba(220, 120, 160, 0.1), transparent 70%),
+        var(--bg);
+    }
+    a { color: inherit; }
+    .wrap { width: min(1480px, 100% - 32px); margin: 0 auto; padding: clamp(28px, 5vw, 64px) 0 80px; }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: clamp(32px, 6vw, 72px); }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .brand img { width: 34px; height: 34px; border-radius: 10px; }
+    .brand span { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-size: 30px; }
+    .back {
+      height: 44px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 20px;
+      border-radius: 99px;
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      color: var(--ink-2);
+      background: rgba(255, 255, 255, 0.07);
+      box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    }
+    .back:hover { color: var(--ink); background: rgba(255, 255, 255, 0.11); }
+    h1 {
+      margin: 0;
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-style: italic;
+      font-weight: 400;
+      font-size: clamp(52px, 7.5vw, 112px);
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      background: linear-gradient(180deg, #fff 30%, rgba(255, 255, 255, 0.55));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .lede { max-width: 620px; margin: 18px 0 0; font-size: clamp(17px, 1.4vw, 20px); line-height: 1.5; color: var(--ink-2); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 620px), 1fr));
+      gap: clamp(20px, 3vw, 40px);
+      margin-top: clamp(36px, 5vw, 64px);
+    }
+    .card { display: flex; flex-direction: column; gap: 18px; text-decoration: none; }
+    .frame {
+      position: relative;
+      aspect-ratio: 16 / 10;
+      overflow: hidden;
+      border-radius: 22px;
+      background: #111;
+      box-shadow: 0 0 0 1px var(--line), 0 40px 80px -40px rgba(0, 0, 0, 0.9);
+      transition: transform 0.6s var(--ease), box-shadow 0.6s var(--ease);
+    }
+    .card:hover .frame { transform: translateY(-4px); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22), 0 50px 90px -40px rgba(0, 0, 0, 0.95); }
+    .frame iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1440px;
+      height: 900px;
+      border: 0;
+      transform: scale(var(--k, 0.4));
+      transform-origin: 0 0;
+      pointer-events: none;
+    }
+    .badge {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      padding: 7px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #0b0b10;
+      background: #fff;
+      box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.6);
+    }
+    .meta { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 0 4px; }
+    .num { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: var(--ink-3); letter-spacing: 0.06em; }
+    .name { margin: 4px 0 2px; font-size: clamp(28px, 2.4vw, 36px); line-height: 1.05; font-weight: 500; letter-spacing: -0.02em; }
+    .tag { margin: 0; font-size: 16px; color: var(--ink-2); }
+    .use {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      height: 48px;
+      padding: 0 22px;
+      border-radius: 99px;
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+      color: #0b0b10;
+      background: linear-gradient(180deg, #ffffff 0%, #eeeef3 55%, #d6d6de 100%);
+      box-shadow: inset 0 1px 0 #fff, 0 14px 30px -14px rgba(0, 0, 0, 0.9);
+      transition: transform 0.25s cubic-bezier(0.34, 1.45, 0.64, 1);
+    }
+    .card:active .use { transform: scale(0.96); }
+    .foot { margin-top: 64px; font-size: 15px; color: var(--ink-3); text-align: center; }
+    @media (max-width: 640px) {
+      .meta { flex-direction: column; align-items: flex-start; }
+      .use { width: 100%; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="./"><img src="assets/icon.svg" alt=""><span>Lyra</span></a>
+      <a class="back" href="./">Back to Lyra</a>
+    </header>
+    <h1>Choose your style</h1>
+    <p class="lede">Seven looks, all live. Each one plays the same moment of the demo song and takes its colors from the album art, so you can compare them directly. Switch anytime in Settings → Style.</p>
+    <main class="grid" id="grid"></main>
+    <p class="foot">Every style keeps all of Lyra’s toggles: views, artwork, background, timing and more.</p>
+  </div>
+  <script type="module" src="js/styles-page.js"></script>
+</body>
+</html>

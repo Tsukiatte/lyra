@@ -46,7 +46,15 @@ export class Background {
     this.root = root;
     this.canvas = h('canvas', { class: 'bg-gl' });
     this.artLayer = h('div', { class: 'bg-art' });
-    root.append(this.canvas, this.artLayer, h('div', { class: 'bg-tint' }), h('div', { class: 'bg-dim' }), h('div', { class: 'bg-vignette' }), h('div', { class: 'bg-grain' }));
+    root.append(
+      this.canvas,
+      this.artLayer,
+      h('div', { class: 'bg-tint' }),
+      h('div', { class: 'bg-dim' }),
+      h('div', { class: 'bg-theme' }),
+      h('div', { class: 'bg-vignette' }),
+      h('div', { class: 'bg-grain' }),
+    );
     this.cur = DEFAULT_PALETTE.aurora.map((c) => c.slice());
     this.from = this.cur.map((c) => c.slice());
     this.to = this.from;

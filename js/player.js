@@ -1,14 +1,15 @@
 import { deviceIcon, icons } from './icons.js';
 import { clearLyricsCache, getLyrics, prefetchLyrics } from './lyrics.js';
 import { LyricsView } from './lyrics-view.js';
-import { DEFAULT_PALETTE, extractPalette, hexToRgb, loadImage } from './palette.js';
+import { DEFAULT_PALETTE, extractPalette, loadImage } from './palette.js';
 import { closeSettings, openSettings, settingsOpen } from './settings-panel.js';
-import { fmtOffset, LAYOUTS, settings } from './settings.js';
+import { EMBED, fmtOffset, LAYOUTS, settings } from './settings.js';
+import { setPalette } from './themes.js';
 import { clamp, fmtTime, h, store } from './util.js';
 
 const PERF_KEY = 'lyra.perfChecked';
 const LAYOUT_NAMES = Object.fromEntries(LAYOUTS);
-const RELAYOUT = new Set(['layout', 'lyricSize', 'lyricFont', 'lyricAlign', 'showArt', 'showInfo', 'showProgress', 'showControls', 'showLyrics', 'reflection']);
+const RELAYOUT = new Set(['theme', 'layout', 'lyricSize', 'lyricFont', 'lyricAlign', 'showArt', 'showInfo', 'showProgress', 'showControls', 'showLyrics', 'reflection']);
 const WAKE_EVENTS = ['pointermove', 'pointerdown', 'keydown', 'wheel'];
 
 const replay = (el, cls) => {
@@ -29,7 +30,6 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
   let track = null;
   let duration = 0;
   let playing = null;
-  let palette = DEFAULT_PALETTE;
   let nextTrack = null;
   let job = 0;
   let raf = 0;
@@ -245,23 +245,13 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
   }
 
   function applyPalette(pal) {
-    palette = pal;
     bg.setPalette(pal);
-    applyAccent();
+    setPalette(pal);
   }
-
-  function applyAccent() {
-    const choice = settings.get('accent');
-    const rgb = (choice !== 'auto' && hexToRgb(choice)) || palette.accentRgb;
-    const style = document.documentElement.style;
-    style.setProperty('--accent', `rgb(${rgb.join(', ')})`);
-    style.setProperty('--accent-rgb', rgb.join(', '));
-  }
-  watch('accent', applyAccent);
 
   // ── Frame loop ────────────────────────────────────────────────────────────
   // Older car computers can't keep up with blur + WebGL: measure once and back off.
-  const perf = { last: 0, samples: [], start: performance.now() + 2500, done: store.get(PERF_KEY, false) };
+  const perf = { last: 0, samples: [], start: performance.now() + 2500, done: EMBED || store.get(PERF_KEY, false) };
   function watchPerformance(now) {
     if (perf.done || document.hidden || !playing || now < perf.start) {
       perf.last = 0;
@@ -464,6 +454,7 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
     setTimeout(relayout, 750);
   }));
   addEventListener('resize', marquee);
+  addEventListener('lyra:fonts', relayout);
   document.fonts?.ready.then(() => !destroyed && relayout());
 
   if (welcome) setTimeout(() => toast('Connected. Enjoy the ride.'), 600);
@@ -480,6 +471,7 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
       WAKE_EVENTS.forEach((ev) => removeEventListener(ev, wake));
       removeEventListener('keydown', onKey);
       removeEventListener('resize', marquee);
+      removeEventListener('lyra:fonts', relayout);
       offs.forEach((off) => off());
       source.stop();
       lyrics.destroy();

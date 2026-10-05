@@ -5,6 +5,9 @@ Beautiful, perfectly synced lyrics for whatever's playing on Spotify, built for 
 
 - **Synced karaoke lyrics**: words light up as they're sung, with a cascading scroll, depth blur and
   breathing dots during instrumental breaks. Tap any line to jump to it.
+- **Seven styles**: Lumière (frosted glass), Noir (editorial Bodoni), Aurum (champagne gold),
+  Chrome (liquid metal), Frost (daylight glass), Neon (midnight glow) and Riviera (cream and
+  navy). Compare them live on `styles.html`, or switch in Settings → Style.
 - **Four views**: Split, Lyrics, Cover and Stage, all switchable from the dock.
 - **Living backgrounds** tinted by the album art: Aurora (WebGL), Artwork, Tint or pure Black.
 - **Everything is a toggle**: artwork, reflection, controls, clock, text size, typeface, alignment,
@@ -106,6 +109,8 @@ Open <http://127.0.0.1:5173/tests/mock-spotify.html> to run the real Spotify cod
 simulated account (real lyrics and artwork, fake playback). In the console, `mock.idle()`,
 `mock.fail(403)`, `mock.fail(500)` and `mock.ok()` exercise the idle and error states.
 
-The app is plain ES modules in [`js/`](js) with one stylesheet, [`css/app.css`](css/app.css).
-Every setting is mirrored onto `<html>` as `data-*` attributes and `--s-*` CSS variables, so most
-visual toggles are pure CSS.
+The app is plain ES modules in [`js/`](js). [`css/app.css`](css/app.css) defines the layout and
+design tokens; [`css/themes.css`](css/themes.css) restyles them per style, and
+[`js/themes.js`](js/themes.js) lists each style's fonts, accent rule and preview. Every setting is
+mirrored onto `<html>` as `data-*` attributes and `--s-*` CSS variables, so most visual toggles
+are pure CSS. `?theme=noir` switches style from a link.

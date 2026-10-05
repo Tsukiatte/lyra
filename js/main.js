@@ -6,13 +6,26 @@ import { Background } from './background.js';
 import { DemoSource } from './demo.js';
 import { mountPlayer } from './player.js';
 import { renderConnect, renderPhoneHandoff, renderPhonePair, renderSetup } from './screens.js';
-import { settings } from './settings.js';
+import { EMBED, settings } from './settings.js';
 import { SpotifySource } from './spotify.js';
+import { applyAccent, applyTheme, ensureFonts, THEMES } from './themes.js';
 
 const root = document.documentElement;
 const app = document.getElementById('app');
+const params = new URLSearchParams(location.search);
 
 if (/\bTesla\b/i.test(navigator.userAgent)) root.dataset.tesla = 'true';
+if (EMBED) root.dataset.embed = 'true';
+
+// ?theme=noir switches style (the styles gallery links here); embedded previews don't save it.
+const linkedTheme = params.get('theme');
+if (THEMES.some((t) => t.id === linkedTheme)) {
+  applyTheme(linkedTheme);
+  if (!EMBED) {
+    params.delete('theme');
+    history.replaceState(null, '', location.pathname + (params.toString() ? `?${params}` : '') + location.hash);
+  }
+}
 
 // Every setting is mirrored onto <html>: booleans/strings as data-*, numbers as --s-* variables.
 function applySettings() {
@@ -22,7 +35,13 @@ function applySettings() {
   }
 }
 applySettings();
-settings.on('change', applySettings);
+ensureFonts();
+applyAccent();
+settings.on('change', (key) => {
+  applySettings();
+  if (key === 'theme') ensureFonts();
+  if (key === 'theme' || key === 'accent') applyAccent();
+});
 
 const bg = new Background(document.getElementById('bg'));
 

@@ -197,7 +197,8 @@ export class DemoSource extends Emitter {
     super();
     this.demo = true;
     this.index = 0;
-    this.base = 0;
+    // ?t=ms starts mid-song (used by the styles gallery).
+    this.base = Math.max(0, Number(new URLSearchParams(location.search).get('t')) || 0);
     this.at = performance.now();
     this.playing = true;
     this.shuffle = false;

@@ -1,5 +1,6 @@
 import { icons } from './icons.js';
 import { SCHEMA, settings } from './settings.js';
+import { applyTheme, ensureFonts, THEMES } from './themes.js';
 import { clamp, h } from './util.js';
 
 let current = null;
@@ -59,6 +60,7 @@ export function openSettings(opts = {}) {
 }
 
 function row(item, watch) {
+  if (item.type === 'themes') return h('div', { class: 'row is-stack' }, CONTROLS.themes(item, watch));
   const stacked = item.type === 'segment' || item.type === 'range' || item.type === 'swatches';
   const value = h('span', { class: 'row-val' });
   const text = h('div', { class: 'row-text' },
@@ -69,6 +71,32 @@ function row(item, watch) {
 }
 
 const CONTROLS = {
+  themes(item, watch) {
+    ensureFonts(THEMES.map((t) => t.id));
+    const grid = h('div', { class: 'themes', role: 'radiogroup', 'aria-label': 'Style' });
+    const cards = THEMES.map((t) => {
+      const p = t.preview;
+      const on = h('div', { class: 'tc-on' }, 'City lights');
+      if (p.fill) on.style.cssText = `background:${p.fill};-webkit-background-clip:text;background-clip:text;color:transparent`;
+      if (p.glow) on.style.textShadow = `0 0 10px ${p.glow}, 0 0 24px ${p.glow}`;
+      const art = h('div', { class: 'tc-art' });
+      art.style.cssText = `background:${p.art};border-radius:${p.radius}` + (p.mat ? ';box-shadow:0 0 0 3px #fffaf0, 0 0 0 4px rgba(20,33,61,.15)' : '');
+      const scene = h('div', { class: 'tc-scene' }, art,
+        h('div', { class: 'tc-lines' }, on, h('div', { class: 'tc-off' }, 'melting into gold')),
+        h('span', { class: 'tc-dot' }));
+      scene.style.cssText = `background:${p.bg};color:${p.ink};font-family:${p.font};font-weight:${p.weight};--tc-dim:${p.dim};--tc-accent:${p.accent}`;
+      const card = h('button', { class: 'theme-card', role: 'radio', onclick: () => applyTheme(t.id) },
+        scene,
+        h('div', { class: 'tc-name' }, t.name),
+        h('div', { class: 'tc-tag' }, t.tagline));
+      card.dataset.value = t.id;
+      grid.append(card);
+      return card;
+    });
+    watch(item.key, (v) => cards.forEach((c) => c.setAttribute('aria-checked', String(c.dataset.value === v))));
+    return h('div', { class: 'themes-wrap' }, grid, h('a', { class: 'themes-link', href: 'styles.html' }, 'Compare all styles side by side →'));
+  },
+
   toggle(item, watch) {
     const b = h('button', { class: 'switch', role: 'switch', 'aria-label': item.label, onclick: () => settings.toggle(item.key) });
     watch(item.key, (v) => b.setAttribute('aria-checked', String(Boolean(v))));

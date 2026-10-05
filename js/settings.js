@@ -1,6 +1,7 @@
 import { Emitter, store } from './util.js';
 
 export const DEFAULTS = Object.freeze({
+  theme: 'lumiere',
   layout: 'split',
   showArt: true,
   reflection: true,
@@ -13,7 +14,7 @@ export const DEFAULTS = Object.freeze({
   showLyrics: true,
   lyricSize: 1,
   lyricAlign: 'left',
-  lyricFont: 'geist',
+  lyricFont: 'theme',
   wordSweep: true,
   glow: true,
   depthBlur: true,
@@ -34,7 +35,11 @@ export const DEFAULTS = Object.freeze({
 
 const KEY = 'lyra.settings.v1';
 
+// Embedded previews (the styles gallery) start from defaults and never save.
+export const EMBED = new URLSearchParams(globalThis.location?.search || '').has('embed');
+
 function load() {
+  if (EMBED) return { ...DEFAULTS };
   const saved = store.get(KEY, {}) || {};
   const values = { ...DEFAULTS };
   for (const key of Object.keys(DEFAULTS)) {
@@ -56,7 +61,7 @@ class Settings extends Emitter {
   set(key, value) {
     if (!(key in DEFAULTS) || this.values[key] === value) return;
     this.values[key] = value;
-    store.set(KEY, this.values);
+    if (!EMBED) store.set(KEY, this.values);
     this.emit(key, value);
     this.emit('change', key, value);
   }
@@ -68,7 +73,7 @@ class Settings extends Emitter {
   reset() {
     const before = this.values;
     this.values = { ...DEFAULTS };
-    store.set(KEY, this.values);
+    if (!EMBED) store.set(KEY, this.values);
     for (const key of Object.keys(DEFAULTS)) {
       if (before[key] === this.values[key]) continue;
       this.emit(key, this.values[key]);
@@ -94,6 +99,10 @@ const pct = (v) => `${Math.round(v * 100)}%`;
 // Drives the settings sheet. Every key here is live: changing it re-styles the app instantly.
 export const SCHEMA = [
   {
+    title: 'Style',
+    items: [{ key: 'theme', type: 'themes', label: 'Style' }],
+  },
+  {
     title: 'Layout',
     items: [
       { key: 'layout', type: 'segment', label: 'View', options: LAYOUTS },
@@ -113,7 +122,7 @@ export const SCHEMA = [
       { key: 'showLyrics', type: 'toggle', label: 'Show lyrics' },
       { key: 'lyricSize', type: 'range', label: 'Text size', min: 0.7, max: 1.5, step: 0.05, format: pct },
       { key: 'lyricAlign', type: 'segment', label: 'Alignment', options: [['left', 'Left'], ['center', 'Center']] },
-      { key: 'lyricFont', type: 'segment', label: 'Typeface', options: [['geist', 'Sans'], ['serif', 'Serif'], ['mono', 'Mono']] },
+      { key: 'lyricFont', type: 'segment', label: 'Typeface', options: [['theme', 'Style'], ['geist', 'Sans'], ['serif', 'Serif'], ['mono', 'Mono']] },
       { key: 'wordSweep', type: 'toggle', label: 'Karaoke sweep', hint: 'Words light up as they’re sung' },
       { key: 'glow', type: 'toggle', label: 'Active line glow' },
       { key: 'depthBlur', type: 'toggle', label: 'Depth blur', hint: 'Softens lines away from the current one' },
