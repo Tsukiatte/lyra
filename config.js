@@ -5,7 +5,7 @@
 //
 // The Client ID is not a secret: Lyra signs in with the PKCE flow, which runs
 // entirely in the browser and never needs the Client Secret.
-export const SPOTIFY_CLIENT_ID = '';
+export const SPOTIFY_CLIENT_ID = '58e55b8e68dc495ebd4c6a51dfa6cf72';
 
 // Relay used for "scan with your phone" sign-in. The phone encrypts the session
 // with a key that only exists inside the QR code, so the relay only ever sees
