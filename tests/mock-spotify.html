@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lyra · Spotify simulator</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..800&family=Geist+Mono:wght@400..600&family=Instrument+Serif:ital@0;1&display=swap">
+  <link rel="stylesheet" href="../css/app.css">
+</head>
+<body>
+  <div id="bg" class="bg" aria-hidden="true"></div>
+  <div id="app"></div>
+  <script type="module">
+    // Simulates a signed-in Spotify account so the real SpotifySource code path can be
+    // exercised without credentials. Lyrics (LRCLIB) and album art are fetched for real.
+    // Console helpers: mock.idle(), mock.resume(), mock.fail(403|500|429), mock.ok(), mock.drift(ms)
+    // Keep simulating even when this tab is in the background.
+    Object.defineProperty(document, 'hidden', { get: () => false });
+    Object.defineProperty(document, 'visibilityState', { get: () => 'visible' });
+    localStorage.setItem('lyra.clientId', JSON.stringify('00000000000000000000000000000000'));
+    localStorage.setItem('lyra.tokens', JSON.stringify({ access_token: 'mock', refresh_token: 'mock', expires_at: Date.now() + 3600e3 }));
+
+    const tracks = [
+      { type: 'track', id: 'mock-1', uri: 'spotify:track:mock-1', name: 'Blinding Lights', duration_ms: 200040, artists: [{ name: 'The Weeknd' }],
+        album: { name: 'After Hours', images: [{ url: 'https://i.scdn.co/image/ab67616d0000b2738863bc11d2aa12b54f5aeb36', width: 640, height: 640 }] } },
+      { type: 'track', id: 'mock-2', uri: 'spotify:track:mock-2', name: 'Mr. Brightside', duration_ms: 222973, artists: [{ name: 'The Killers' }],
+        album: { name: 'Hot Fuss', images: [] } },
+    ];
+    const sim = { index: 0, base: 12000, at: Date.now(), playing: true, idle: false, fail: 0, drift: 0, shuffle: false, repeat: 'off', calls: [] };
+    const pos = () => Math.min(tracks[sim.index].duration_ms, sim.base + (sim.playing ? Date.now() - sim.at : 0));
+    const setPos = (ms) => { sim.base = ms; sim.at = Date.now(); };
+    const json = (body, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+    const empty = () => new Response(null, { status: 204 });
+
+    function handle(url, init) {
+      const method = (init.method || 'GET').toUpperCase();
+      const path = url.pathname.replace('/v1', '');
+      sim.calls.push(`${method} ${path}${url.search}`);
+      if (sim.fail) return json({ error: { status: sim.fail, message: sim.fail === 403 ? 'Check settings on developer.spotify.com/dashboard, the user may not be registered.' : 'Simulated failure' } }, sim.fail);
+      if (path === '/me') return json({ display_name: 'Test Driver', id: 'tester', images: [] });
+      if (path === '/me/player/queue') return json({ queue: [tracks[(sim.index + 1) % tracks.length]] });
+      if (path === '/me/player' && method === 'GET') {
+        if (sim.idle) return empty();
+        if (pos() >= tracks[sim.index].duration_ms) { sim.index = (sim.index + 1) % tracks.length; setPos(0); }
+        return json({
+          is_playing: sim.playing, progress_ms: Math.max(0, pos() + sim.drift), currently_playing_type: 'track',
+          shuffle_state: sim.shuffle, repeat_state: sim.repeat, timestamp: Date.now(),
+          device: { name: 'Model 3', type: 'Automobile', volume_percent: 60 },
+          actions: { disallows: { resuming: sim.playing, pausing: !sim.playing } },
+          item: tracks[sim.index],
+        });
+      }
+      if (path === '/me/player/play') { setPos(pos()); sim.playing = true; return empty(); }
+      if (path === '/me/player/pause') { setPos(pos()); sim.playing = false; return empty(); }
+      if (path === '/me/player/next') { sim.index = (sim.index + 1) % tracks.length; setPos(0); return empty(); }
+      if (path === '/me/player/previous') { sim.index = (sim.index - 1 + tracks.length) % tracks.length; setPos(0); return empty(); }
+      if (path === '/me/player/seek') { setPos(Number(url.searchParams.get('position_ms'))); return empty(); }
+      if (path === '/me/player/shuffle') { sim.shuffle = url.searchParams.get('state') === 'true'; return empty(); }
+      if (path === '/me/player/repeat') { sim.repeat = url.searchParams.get('state'); return empty(); }
+      return json({ error: { status: 404, message: 'Not mocked' } }, 404);
+    }
+
+    const realFetch = window.fetch.bind(window);
+    window.fetch = async (input, init = {}) => {
+      const url = new URL(typeof input === 'string' || input instanceof URL ? input : input.url, location.href);
+      if (url.hostname === 'api.spotify.com') return handle(url, init);
+      if (url.hostname === 'accounts.spotify.com') return json({ access_token: 'mock', refresh_token: 'mock', expires_in: 3600 });
+      return realFetch(input, init);
+    };
+
+    window.mock = {
+      sim,
+      idle: () => { sim.idle = true; },
+      resume: () => { sim.idle = false; },
+      fail: (status) => { sim.fail = status; },
+      ok: () => { sim.fail = 0; },
+      drift: (ms) => { sim.drift = ms; },
+      seek: (ms) => setPos(ms),
+      position: pos,
+    };
+
+    await import('../js/main.js');
+  </script>
+</body>
+</html>

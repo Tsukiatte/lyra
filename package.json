@@ -1,0 +1,11 @@
+{
+  "name": "lyra",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Synced Spotify lyrics, designed for the car screen.",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "test": "node --test \"tests/*.test.mjs\""
+  }
+}
