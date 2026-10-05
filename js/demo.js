@@ -73,7 +73,7 @@ function canvas(size = 640) {
 }
 
 function label(g, text, x, y) {
-  g.font = '600 20px Geist, system-ui, sans-serif';
+  g.font = '700 20px Satoshi, Geist, system-ui, sans-serif';
   if ('letterSpacing' in g) g.letterSpacing = '6px';
   g.fillStyle = 'rgba(255,255,255,.86)';
   g.fillText(text, x, y);
