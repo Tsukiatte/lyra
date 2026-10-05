@@ -506,6 +506,7 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
     immersive = on;
     root.classList.toggle('is-immersive', on);
     document.documentElement.dataset.immersive = String(on);
+    lyrics.reanchor();
     if (on && !hinted) {
       hinted = true;
       setTimeout(() => immersive && toast('Tap anywhere to bring the controls back'), 1100);

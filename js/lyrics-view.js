@@ -46,6 +46,9 @@ const MESSAGES = {
   error: [icons.refresh, 'Couldn’t load lyrics', 'Check the connection and try again.'],
 };
 
+// Frame-rate independent easing factor: k is the fraction covered per 60 fps frame.
+const ease = (k, dt) => 1 - Math.pow(1 - k, dt * 60);
+
 export class LyricsView {
   constructor(root, { onSeek } = {}) {
     this.root = root;
@@ -55,10 +58,18 @@ export class LyricsView {
     root.append(this.inner, this.note);
     this.items = [];
     this.active = -1;
-    this.userOffset = 0;
-    this.userUntil = 0;
-    this.dragging = false;
+    this.base = 0;
+    this.lastBase = null;
     this.plainFrac = 0;
+    // Manual scrolling rides on top of the live position: wheel input glides, drags
+    // carry momentum, both rubber-band at the ends, then it drifts back to the live line.
+    this.offset = 0;
+    this.glideTo = null;
+    this.velocity = 0;
+    this.dragging = false;
+    this.browsing = false;
+    this.userUntil = 0;
+    this.lastStep = 0;
     this.setMode('empty');
     this.ro = new ResizeObserver(() => this.measure());
     this.ro.observe(root);
@@ -77,10 +88,15 @@ export class LyricsView {
   clear() {
     this.items = [];
     this.inner.textContent = '';
-    this.inner.style.transform = '';
     this.note.textContent = '';
     this.active = -1;
-    this.userOffset = 0;
+    this.lastBase = null;
+    this.offset = 0;
+    this.glideTo = null;
+    this.velocity = 0;
+    this.dragging = false;
+    this.setBrowsing(false);
+    this.applyOffset();
   }
 
   loading() {
@@ -157,17 +173,26 @@ export class LyricsView {
     }
   }
 
+  readAnchor() {
+    this.anchor = parseFloat(getComputedStyle(this.root).getPropertyValue('--anchor')) || 0.38;
+  }
+
   measure() {
     this.viewH = this.root.clientHeight;
-    this.anchor = parseFloat(getComputedStyle(this.root).getPropertyValue('--anchor')) || 0.38;
+    this.readAnchor();
     this.contentH = this.inner.scrollHeight;
     if (this.mode === 'synced') {
       this.tops = this.items.map((it) => it.el.offsetTop);
       this.heights = this.items.map((it) => it.el.offsetHeight);
       this.layout(true);
-    } else if (this.mode === 'plain') {
-      this.applyPlain();
     }
+    this.applyOffset();
+  }
+
+  // Re-read --anchor (e.g. on entering immersive mode) and glide the lines to it.
+  reanchor() {
+    this.readAnchor();
+    this.layout();
   }
 
   indexAt(t) {
@@ -195,21 +220,11 @@ export class LyricsView {
       } else if (it?.kind === 'gap') {
         this.paintGap(it, t);
       }
-      if (this.userOffset && !this.dragging && now > this.userUntil) {
-        this.userOffset = 0;
-        this.layout();
-      }
-    } else if (this.mode === 'plain') {
-      let dirty = Math.abs(frac - this.plainFrac) > 0.0004;
-      if (this.userOffset && !this.dragging && now > this.userUntil) {
-        this.userOffset = 0;
-        dirty = true;
-      }
-      if (dirty) {
-        this.plainFrac = frac;
-        this.applyPlain();
-      }
+    } else if (this.mode === 'plain' && Math.abs(frac - this.plainFrac) > 0.0004) {
+      this.plainFrac = frac;
+      this.dirty = true;
     }
+    this.stepScroll(now);
   }
 
   // What's being sung right now, for the visualizer: an instrumental gap, or the
@@ -241,15 +256,21 @@ export class LyricsView {
     this.layout();
   }
 
+  // Positions every line so the active one sits at the anchor (with a cascade).
   layout(instant = false) {
     if (this.mode !== 'synced' || !this.items.length || !this.tops) return;
     const i = clamp(this.active, 0, this.items.length - 1);
     const base = this.viewH * this.anchor - (this.tops[i] + this.heights[i] / 2);
-    // Don't let manual scrolling fling the lyrics out of view.
-    const minY = Math.min(base, this.viewH * 0.5 - this.contentH);
-    const maxY = Math.max(base, this.viewH * 0.5);
-    this.userOffset = clamp(base + this.userOffset, minY, maxY) - base;
-    const y = Math.round(base + this.userOffset);
+    if (this.browsing && this.lastBase != null) {
+      // While browsing, the text stays where the finger left it even as the song moves on.
+      const shift = base - this.lastBase;
+      this.offset -= shift;
+      if (this.glideTo != null) this.glideTo -= shift;
+      instant = true;
+    }
+    this.base = base;
+    this.lastBase = base;
+    const y = Math.round(base);
     const cascade = !instant && settings.values.cascade && !settings.values.lowPower;
     if (instant) this.root.classList.add('is-instant');
     for (let j = 0; j < this.items.length; j++) {
@@ -262,13 +283,73 @@ export class LyricsView {
       void this.root.offsetWidth;
       this.root.classList.remove('is-instant');
     }
+    this.applyOffset();
   }
 
-  applyPlain() {
+  plainAuto() {
     const max = Math.max(0, this.contentH - this.viewH * 0.55);
-    const auto = settings.values.autoScrollPlain ? -this.plainFrac * max : 0;
-    this.userOffset = clamp(this.userOffset, -max - auto, -auto);
-    this.inner.style.transform = `translate3d(0, ${Math.round(auto + this.userOffset + this.viewH * 0.1)}px, 0)`;
+    return settings.values.autoScrollPlain ? -this.plainFrac * max : 0;
+  }
+
+  // How far manual scrolling may go before it rubber-bands.
+  bounds() {
+    if (this.mode === 'synced') {
+      return [Math.min(0, this.viewH * 0.5 - this.contentH - this.base), Math.max(0, this.viewH * 0.5 - this.base)];
+    }
+    if (this.mode === 'plain') {
+      const max = Math.max(0, this.contentH - this.viewH * 0.55);
+      const auto = this.plainAuto();
+      return [Math.min(0, -max - auto), Math.max(0, -auto)];
+    }
+    return [0, 0];
+  }
+
+  applyOffset() {
+    let y = this.offset;
+    if (this.mode === 'plain') y += this.plainAuto() + this.viewH * 0.1;
+    this.inner.style.transform = Math.abs(y) > 0.05 ? `translate3d(0, ${y.toFixed(2)}px, 0)` : '';
+  }
+
+  setBrowsing(on) {
+    if (this.browsing === on) return;
+    this.browsing = on;
+    this.root.classList.toggle('is-browsing', on);
+  }
+
+  stepScroll(now) {
+    const dt = this.lastStep ? Math.min(0.05, (now - this.lastStep) / 1000) : 1 / 60;
+    this.lastStep = now;
+    if (this.mode !== 'synced' && this.mode !== 'plain') return;
+    const [lo, hi] = this.bounds();
+    const before = this.offset;
+    if (this.dragging) {
+      // The pointer drives the offset directly.
+    } else if (this.glideTo != null) {
+      if (this.glideTo < lo) this.glideTo += (lo - this.glideTo) * ease(0.18, dt);
+      else if (this.glideTo > hi) this.glideTo += (hi - this.glideTo) * ease(0.18, dt);
+      this.offset += (this.glideTo - this.offset) * ease(0.085, dt);
+      if (Math.abs(this.glideTo - this.offset) < 0.3 && this.glideTo >= lo - 0.5 && this.glideTo <= hi + 0.5) {
+        this.offset = clamp(this.glideTo, lo, hi);
+        this.glideTo = null;
+      }
+    } else if (Math.abs(this.velocity) > 15) {
+      this.offset += this.velocity * dt;
+      const out = this.offset < lo || this.offset > hi;
+      this.velocity *= Math.pow(out ? 0.72 : 0.955, dt * 60);
+    } else {
+      this.velocity = 0;
+      if (this.offset < lo - 0.3 || this.offset > hi + 0.3) {
+        this.offset += ((this.offset < lo ? lo : hi) - this.offset) * ease(0.16, dt);
+      } else if (this.offset !== 0 && now > this.userUntil) {
+        this.offset += -this.offset * ease(0.05, dt);
+        if (Math.abs(this.offset) < 0.4) this.offset = 0;
+      }
+      if (this.offset === 0 && now > this.userUntil) this.setBrowsing(false);
+    }
+    if (this.offset !== before || this.dirty) {
+      this.dirty = false;
+      this.applyOffset();
+    }
   }
 
   paintWords(it, t) {
@@ -291,23 +372,31 @@ export class LyricsView {
 
   bindGestures() {
     const root = this.root;
+    const scrollable = () => this.mode === 'synced' || this.mode === 'plain';
+    const samples = [];
     let pid = null;
     let startY = 0;
     let startOffset = 0;
     let moved = false;
+
     root.addEventListener('pointerdown', (e) => {
       if (e.button > 0) return;
       pid = e.pointerId;
       startY = e.clientY;
-      startOffset = this.userOffset;
+      startOffset = this.offset;
       moved = false;
+      samples.length = 0;
+      // A press catches a fling mid-flight, like on a phone.
+      this.velocity = 0;
+      this.glideTo = null;
     });
     root.addEventListener('pointermove', (e) => {
-      if (e.pointerId !== pid) return;
+      if (e.pointerId !== pid || !scrollable()) return;
       const dy = e.clientY - startY;
       if (!moved && Math.abs(dy) > 8) {
         moved = true;
         this.dragging = true;
+        this.setBrowsing(true);
         root.classList.add('is-dragging');
         try {
           root.setPointerCapture(pid);
@@ -315,11 +404,17 @@ export class LyricsView {
           /* pointer already gone */
         }
       }
-      if (moved) {
-        this.userOffset = startOffset + dy;
-        this.userUntil = performance.now() + 4000;
-        this.reflow();
-      }
+      if (!moved) return;
+      const [lo, hi] = this.bounds();
+      let next = startOffset + dy;
+      if (next > hi) next = hi + (next - hi) * 0.38;
+      else if (next < lo) next = lo + (next - lo) * 0.38;
+      this.offset = next;
+      this.userUntil = performance.now() + 4000;
+      const t = performance.now();
+      samples.push([t, next]);
+      while (samples.length > 2 && t - samples[0][0] > 90) samples.shift();
+      this.applyOffset();
     });
     const finish = (e, cancelled) => {
       if (e.pointerId !== pid) return;
@@ -327,6 +422,9 @@ export class LyricsView {
       if (moved) {
         this.dragging = false;
         root.classList.remove('is-dragging');
+        const [t0, y0] = samples[0] || [0, 0];
+        const [t1, y1] = samples[samples.length - 1] || [0, 0];
+        this.velocity = t1 > t0 ? clamp(((y1 - y0) / (t1 - t0)) * 1000, -6000, 6000) : 0;
         this.userUntil = performance.now() + 3500;
       } else if (!cancelled) {
         this.tap(e.target);
@@ -335,17 +433,15 @@ export class LyricsView {
     root.addEventListener('pointerup', (e) => finish(e, false));
     root.addEventListener('pointercancel', (e) => finish(e, true));
     root.addEventListener('wheel', (e) => {
-      if (this.mode !== 'synced' && this.mode !== 'plain') return;
+      if (!scrollable() || e.ctrlKey) return;
       e.preventDefault();
-      this.userOffset -= e.deltaY;
+      const [lo, hi] = this.bounds();
+      if (this.glideTo == null) this.glideTo = this.offset;
+      this.velocity = 0;
+      this.glideTo = clamp(this.glideTo - e.deltaY * (e.deltaMode === 1 ? 32 : 1), lo - 160, hi + 160);
+      this.setBrowsing(true);
       this.userUntil = performance.now() + 3500;
-      this.reflow();
     }, { passive: false });
-  }
-
-  reflow() {
-    if (this.mode === 'synced') this.layout(true);
-    else if (this.mode === 'plain') this.applyPlain();
   }
 
   tap(target) {
@@ -356,7 +452,11 @@ export class LyricsView {
     el.classList.remove('is-tapped');
     void el.offsetWidth;
     el.classList.add('is-tapped');
-    this.userOffset = 0;
+    // Hand the view back to the live position; the tapped line glides into place.
+    this.velocity = 0;
+    this.glideTo = null;
+    this.userUntil = 0;
+    this.setBrowsing(false);
     this.onSeek?.(item.start);
   }
 }
