@@ -57,8 +57,10 @@ function roundTop(g, x, y, w, h, r) {
 }
 
 export class Visualizer {
-  constructor({ root, artWrap, art, onNotice }) {
+  constructor({ root, artWrap, art, bar, onNotice }) {
+    this.root = root;
     this.art = art;
+    this.bar = bar;
     this.onNotice = onNotice;
     this.levels = new Float32Array(BANDS);
     this.target = new Float32Array(BANDS);
@@ -214,8 +216,30 @@ export class Visualizer {
       rgb: accent.length === 3 && accent.every(Number.isFinite) ? accent.join(',') : '255,255,255',
       artSize: size,
       artRadius: radius.endsWith('%') ? (parseFloat(radius) / 100) * size : parseFloat(radius) || 0,
+      wave: this.waveCenter(),
     };
     return this.cache;
+  }
+
+  // Where the waves center, as fractions of the strip. In the Lyrics and Stage views the progress
+  // bar runs along the bottom, so the ribbons flow through it: on its line and around its middle.
+  // Layout offsets (not on-screen boxes) keep this steady while immersive mode slides the bar away.
+  waveCenter() {
+    const strip = this.strip;
+    const bar = this.bar;
+    const layout = document.documentElement.dataset.layout;
+    if ((layout !== 'lyrics' && layout !== 'stage') || !bar?.offsetWidth || !strip.clientHeight) return { x: 0.5, y: 0.5 };
+    let x = 0;
+    let y = 0;
+    let el = bar;
+    while (el && el !== this.root) {
+      x += el.offsetLeft;
+      y += el.offsetTop;
+      el = el.offsetParent;
+    }
+    const cy = (y + bar.offsetHeight / 2 - strip.offsetTop) / strip.clientHeight;
+    if (el !== this.root || cy <= 0 || cy >= 1) return { x: 0.5, y: 0.5 };
+    return { x: (x + bar.offsetWidth / 2 - strip.offsetLeft) / strip.clientWidth, y: cy };
   }
 
   draw(style, now) {
@@ -320,7 +344,7 @@ export class Visualizer {
 
   // Silky ribbons: low-frequency curves that swell slowly with the music (no per-word
   // bumps), smoothed through midpoints, tapered at both ends, glowing additively.
-  drawWave({ rgb }, now) {
+  drawWave({ rgb, wave: center = { x: 0.5, y: 0.5 } }, now) {
     const c = this.strip;
     const g = c.getContext('2d');
     const W = c.width;
@@ -329,6 +353,14 @@ export class Visualizer {
     const t = now / 1000;
     const dt = this.waveLast ? Math.min(0.05, (now - this.waveLast) / 1000) : 1 / 60;
     this.waveLast = now;
+    // Glide to a new center (a view switch, a resize) instead of jumping. The ribbons keep their
+    // full length, shifted so their middle sits on the center.
+    this.waveAt ||= { ...center };
+    const glide = 1 - Math.pow(1 - 0.08, dt * 60);
+    this.waveAt.x += (center.x - this.waveAt.x) * glide;
+    this.waveAt.y += (center.y - this.waveAt.y) * glide;
+    const x0 = this.waveAt.x * W - W / 2;
+    const cy = this.waveAt.y * H;
     const avg = (from, to) => {
       let s = 0;
       for (let i = from; i < to; i++) s += this.levels[i];
@@ -361,11 +393,11 @@ export class Visualizer {
     g.lineJoin = 'round';
     for (const r of ribbons) {
       const A = (0.24 + r.amp * 1.3) * H * 0.33;
-      const mid = H * (0.5 + r.lift);
+      const mid = cy + r.lift * H;
       const crest = [];
       const under = [];
-      for (let x = -step; x <= W + step; x += step) {
-        const u = clamp(x / W, 0, 1);
+      for (let x = x0 - step; x <= x0 + W + step; x += step) {
+        const u = clamp((x - x0) / W, 0, 1);
         const env = Math.pow(Math.sin(Math.PI * u), 1.5);
         const wave = Math.sin(u * r.f1 * TAU + t * r.s1 + r.ph) * 0.72 + Math.sin(u * r.f2 * TAU + t * r.s2 + r.ph * 1.7) * 0.28;
         const y = mid - wave * env * A;
@@ -373,7 +405,7 @@ export class Visualizer {
         under.push([x, y + env * A * r.sheet]); // the silk hangs below the crest, thinning to nothing at the ends
       }
       const shade = (alpha) => {
-        const grad = g.createLinearGradient(0, 0, W, 0);
+        const grad = g.createLinearGradient(x0, 0, x0 + W, 0);
         grad.addColorStop(0, `rgba(${r.color},0)`);
         grad.addColorStop(0.18, `rgba(${r.color},${alpha * 0.7})`);
         grad.addColorStop(0.5, `rgba(${r.color},${alpha})`);

@@ -141,7 +141,7 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
   const lyrics = new LyricsView(lyricsEl, {
     onSeek: (ms) => run(source.seek(Math.max(0, ms - settings.values.syncOffset + 40))),
   });
-  const viz = new Visualizer({ root, artWrap, art, onNotice: toast });
+  const viz = new Visualizer({ root, artWrap, art, bar, onNotice: toast });
 
   // ── Playback state ────────────────────────────────────────────────────────
   offs.push(source.on('state', onState));
