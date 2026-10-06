@@ -89,6 +89,7 @@ export function renderConnect(app, { notice, onDemo, onPaired, onError }) {
           statusText.textContent = 'Local preview: phones can’t reach this address yet';
         }
         stop = waitForPhone(session, (payload) => {
+          if (cancelled) return; // already handed off; ignore a repeat delivery
           statusText.textContent = 'Connected!';
           onPaired(payload);
         });

@@ -136,7 +136,7 @@ export function mountPlayer(app, { source, bg, demo = false, welcome = false, on
 
   const ambient = h('div', { class: 'ambient' });
   const root = h('div', { class: 'player', 'data-idle': 'true' }, ambient, topbar, np, lyricsEl, upnext, idle, fatal, toasts);
-  app.append(root);
+  app.replaceChildren(root);
 
   const lyrics = new LyricsView(lyricsEl, {
     onSeek: (ms) => run(source.seek(Math.max(0, ms - settings.values.syncOffset + 40))),

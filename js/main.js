@@ -52,6 +52,8 @@ const bg = new Background(document.getElementById('bg'));
 let teardown = () => {};
 function show(render) {
   teardown();
+  // Each screen owns the whole app area: nothing from the last one (like the QR code) stays behind it.
+  app.replaceChildren();
   teardown = render() || (() => {});
 }
 
