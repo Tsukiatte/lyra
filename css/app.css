@@ -110,11 +110,18 @@
   --ease-spring: cubic-bezier(0.34, 1.45, 0.64, 1);
   --ease-lyric: cubic-bezier(0.25, 0.9, 0.25, 1);
   --ease-heavy: cubic-bezier(0.16, 1, 0.3, 1);
-  --pad-x: clamp(20px, 4vw, 84px);
-  --pad-t: clamp(14px, 3vh, 34px);
-  --pad-b: clamp(18px, 4.2vh, 50px);
+  /* Edge padding never lets content slide under a notch or home indicator. */
+  --safe-x: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  --pad-x: max(clamp(20px, 4vw, 84px), var(--safe-x));
+  --pad-t: max(clamp(14px, 3vh, 34px), env(safe-area-inset-top, 0px));
+  --pad-b: max(clamp(18px, 4.2vh, 50px), env(safe-area-inset-bottom, 0px));
+  /* Usable screen height: on phones, vh counts the area behind the browser's toolbars. */
+  --vh100: 100vh;
 
   transition: --c0 1.8s ease, --c1 1.8s ease, --c2 1.8s ease, --c3 1.8s ease, --c4 1.8s ease;
+}
+@supports (height: 100svh) {
+  :root { --vh100: 100svh; }
 }
 
 :root[data-lyric-font='geist'] { --font-lyric: var(--font-ui); --lyric-weight: 900; --lyric-track: -0.03em; --lyric-fs: 1; }
@@ -232,7 +239,7 @@ svg { display: block; width: 100%; height: 100%; }
   align-items: center;
   justify-content: center;
   gap: 10px;
-  height: 58px;
+  height: clamp(46px, 6.6vh, 58px);
   padding: 0 32px;
   border-radius: 999px;
   font-size: 17px;
@@ -309,8 +316,8 @@ svg { display: block; width: 100%; height: 100%; }
   opacity: var(--mark-gloss);
 }
 .mark svg { position: relative; z-index: 1; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25)); }
-.mark-lg { width: 60px; height: 60px; padding: 13px; border-radius: 18px; }
-.mark-xl { width: 76px; height: 76px; padding: 16px; border-radius: 22px; }
+.mark-lg { width: clamp(46px, 7vh, 60px); height: clamp(46px, 7vh, 60px); padding: clamp(10px, 1.5vh, 13px); border-radius: 18px; }
+.mark-xl { width: clamp(50px, 8.5vh, 76px); height: clamp(50px, 8.5vh, 76px); padding: clamp(11px, 1.8vh, 16px); border-radius: clamp(15px, 2.5vh, 22px); }
 
 .eyebrow { font-family: var(--font-label); font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-3); }
 
@@ -353,15 +360,22 @@ svg { display: block; width: 100%; height: 100%; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: clamp(22px, 4vh, 40px);
-  padding: 40px 20px;
+  justify-content: flex-start;
+  gap: clamp(14px, 3.4vh, 40px);
+  padding:
+    max(clamp(16px, 4vh, 40px), env(safe-area-inset-top, 0px))
+    max(20px, var(--safe-x))
+    max(clamp(16px, 4vh, 40px), env(safe-area-inset-bottom, 0px));
   text-align: center;
   animation: screen-in 0.9s var(--ease-out);
 }
+/* Safe centering: auto margins center when there's room and collapse to zero when the
+   content is taller than the screen, so nothing is ever pushed off the top. */
+.screen > :first-child { margin-top: auto; }
+.screen > :last-child { margin-bottom: auto; }
 @keyframes screen-in { from { opacity: 0; transform: translateY(12px); } }
 
-.hero { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.hero { display: flex; flex-direction: column; align-items: center; gap: clamp(6px, 1.4vh, 12px); }
 
 .wordmark {
   margin: 4px 0 0;
@@ -370,7 +384,7 @@ svg { display: block; width: 100%; height: 100%; }
   font-style: normal;
   font-weight: var(--brand-weight);
   text-transform: var(--display-transform);
-  font-size: clamp(76px, 9vw, 140px);
+  font-size: clamp(52px, min(9vw, 13.5vh), 140px);
   line-height: 0.92;
   letter-spacing: var(--display-track);
   background: var(--wordmark-fill);
@@ -380,25 +394,25 @@ svg { display: block; width: 100%; height: 100%; }
 }
 .wordmark-sm { font-size: 64px; }
 
-.tagline { margin: 0; font-size: clamp(17px, 1.3vw, 21px); color: var(--ink-2); letter-spacing: -0.01em; }
+.tagline { margin: 0; font-size: clamp(15px, min(1.3vw, 2.4vh), 21px); color: var(--ink-2); letter-spacing: -0.01em; }
 
 .connect-card {
   display: flex;
   align-items: center;
   gap: 34px;
   max-width: 740px;
-  padding: 24px 40px 24px 24px;
-  border-radius: 34px;
+  padding: clamp(14px, 2.6vh, 24px) 40px clamp(14px, 2.6vh, 24px) clamp(14px, 2.6vh, 24px);
+  border-radius: clamp(24px, 3.8vh, 34px);
   text-align: left;
 }
 
 .qr-tile {
   position: relative;
   flex: none;
-  width: 212px;
-  height: 212px;
-  padding: 14px;
-  border-radius: 24px;
+  width: clamp(140px, 25vh, 212px);
+  height: clamp(140px, 25vh, 212px);
+  padding: clamp(10px, 1.6vh, 14px);
+  border-radius: clamp(16px, 2.8vh, 24px);
   color: #0b0b10;
   background: linear-gradient(180deg, #ffffff, #f1f1f5);
   box-shadow: inset 0 1px 0 #fff, 0 0 0 1px rgba(128, 128, 140, 0.25), 0 20px 44px -18px rgba(0, 0, 0, 0.6);
@@ -415,8 +429,8 @@ svg { display: block; width: 100%; height: 100%; }
 }
 .qr-tile.is-failed::after { animation: none; opacity: 0.6; }
 
-.connect-steps ol { list-style: none; margin: 14px 0 18px; padding: 0; display: grid; gap: 12px; counter-reset: step; }
-.connect-steps li { counter-increment: step; display: flex; align-items: center; gap: 14px; font-size: 18px; }
+.connect-steps ol { list-style: none; margin: clamp(8px, 1.6vh, 14px) 0 clamp(10px, 2vh, 18px); padding: 0; display: grid; gap: clamp(7px, 1.4vh, 12px); counter-reset: step; }
+.connect-steps li { counter-increment: step; display: flex; align-items: center; gap: 14px; font-size: clamp(15px, 2.1vh, 18px); }
 .connect-steps li::before {
   content: counter(step);
   flex: none;
@@ -606,21 +620,24 @@ svg { display: block; width: 100%; height: 100%; }
   min-height: 0;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   transition: opacity 0.6s ease;
 }
+/* Auto margins center the column but never push it past the top on short screens. */
 .np-inner {
-  width: min(100%, 50vh, 540px);
+  margin-block: auto;
+  width: min(100%, max(340px, 50vh), 540px);
   display: flex;
   flex-direction: column;
   gap: clamp(16px, 2.8vh, 30px);
 }
 .np-body { display: flex; flex-direction: column; gap: clamp(14px, 2.4vh, 26px); min-width: 0; }
 
+/* The artwork also shrinks with screen height so details and controls always fit below it. */
 .art-wrap {
   position: relative;
   flex: none;
-  width: 100%;
+  width: min(100%, max(120px, calc((var(--vh100) - 400px) / 1.06)));
   aspect-ratio: 1 / 1;
   cursor: pointer;
   transition: transform 0.9s var(--ease-spring);
@@ -1018,7 +1035,7 @@ svg { display: block; width: 100%; height: 100%; }
 .player[data-idle='true'] .lyrics,
 .player[data-idle='true'] .upnext { opacity: 0; pointer-events: none; }
 .idle-time {
-  font-size: clamp(84px, 13vw, 230px);
+  font-size: clamp(64px, min(13vw, 24vh), 230px);
   font-weight: 500;
   line-height: 1;
   letter-spacing: -0.05em;
@@ -1139,7 +1156,8 @@ svg { display: block; width: 100%; height: 100%; }
   grid-template-areas: 'top' 'np' 'lyrics';
 }
 :root[data-layout='cover'] .np { align-items: center; }
-:root[data-layout='cover'] .np-inner { width: min(100%, 44vh, 500px); align-items: center; text-align: center; gap: 2.2vh; }
+:root[data-layout='cover'] .np-inner { width: min(100%, max(320px, 44vh), 500px); align-items: center; text-align: center; gap: 2.2vh; }
+:root[data-layout='cover'] .art-wrap { width: min(100%, max(110px, calc((var(--vh100) - 470px) / 1.08))); }
 :root[data-layout='cover'] .np-body { width: 100%; align-items: center; }
 :root[data-layout='cover'] .meta { width: 100%; }
 :root[data-layout='cover'] .progress { width: 100%; }
@@ -1187,8 +1205,8 @@ svg { display: block; width: 100%; height: 100%; }
   grid-template-areas: 'top' 'np';
 }
 :root[data-show-lyrics='false'] .np { align-items: center; }
-:root[data-show-lyrics='false'] .np-inner { width: min(100%, 56vh, 600px); flex-direction: column; align-items: stretch; gap: 2.6vh; margin: 0; }
-:root[data-show-lyrics='false'] .art-wrap { --art-r: clamp(14px, 1.5vw, 26px); width: 100%; }
+:root[data-show-lyrics='false'] .np-inner { width: min(100%, 56vh, 600px); flex-direction: column; align-items: stretch; gap: 2.6vh; margin: auto 0; }
+:root[data-show-lyrics='false'] .art-wrap { --art-r: clamp(14px, 1.5vw, 26px); width: min(100%, max(140px, calc((var(--vh100) - 400px) / 1.06))); align-self: center; }
 :root[data-show-lyrics='false'] .np-body { display: flex; flex-direction: column; align-items: stretch; gap: 2.2vh; }
 :root[data-show-lyrics='false'] .np-album { display: block; }
 :root[data-show-lyrics='false'] .ctl-small { display: grid; }
@@ -1203,10 +1221,10 @@ svg { display: block; width: 100%; height: 100%; }
 .sheet {
   position: fixed;
   z-index: 41;
-  top: 14px;
-  right: 14px;
-  bottom: 14px;
-  width: min(460px, calc(100vw - 28px));
+  top: max(14px, env(safe-area-inset-top, 0px));
+  right: max(14px, env(safe-area-inset-right, 0px));
+  bottom: max(14px, env(safe-area-inset-bottom, 0px));
+  width: min(460px, calc(100vw - 28px - var(--safe-x)));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1430,7 +1448,12 @@ kbd {
 .viz { position: absolute; display: none; pointer-events: none; }
 .viz-halo { left: -20%; top: -20%; width: 140%; height: 140%; z-index: -1; }
 :root[data-visualizer='halo']:is([data-layout='split'], [data-layout='cover']) .art-wrap { -webkit-box-reflect: unset; margin-bottom: 5%; }
-:root[data-visualizer='halo'][data-layout='split'] .np-inner { width: min(100%, 46vh, 500px); }
+/* The halo reaches 20% past the artwork on each side; on narrow screens the artwork leaves room. */
+:root[data-visualizer='halo']:is([data-layout='cover'], [data-layout='split'][data-show-lyrics='false']) .art-wrap { max-width: calc((100vw - 24px) / 1.4); }
+@media (min-width: 821px) {
+  :root[data-visualizer='halo'][data-layout='split'] .np-inner { width: min(100%, max(340px, 46vh), 500px); }
+  :root[data-visualizer='halo'][data-layout='split'] .art-wrap { width: min(100%, max(120px, calc((var(--vh100) - 420px) / 1.06))); }
+}
 .viz-strip { left: 0; bottom: 0; width: 100%; height: 20vh; z-index: -1; opacity: 0.8; }
 :root:is([data-layout='lyrics'], [data-layout='stage']) .viz-strip { height: 16vh; opacity: 0.45; }
 :root[data-visualizer='wave'] .viz-strip { height: 30vh; opacity: 0.9; }
@@ -1597,34 +1620,99 @@ kbd {
 /* ── Small screens (phones) ─────────────────────────────────────────────── */
 
 @media (max-width: 820px) {
-  :root { --pad-x: 18px; --lyric-px: clamp(24px, 6.4vw, 38px); }
+  :root { --pad-x: max(18px, var(--safe-x)); --lyric-px: clamp(24px, 6.4vw, 38px); }
   :root[data-layout] { --lyric-px: clamp(24px, 6.4vw, 38px); }
   :root[data-layout='stage'] { --lyric-px: clamp(28px, 8vw, 46px); }
   .brand-name, .chip.device { display: none; }
   .dock button { width: 42px; height: 42px; padding: 11px; }
   .clock { font-size: 20px; }
 
-  :root[data-layout='split'] .player {
+  /* These compact the player around the lyrics, so they stand down in artwork-only mode. */
+  :root[data-layout='split'][data-show-lyrics='true'] .player {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr);
     grid-template-areas: 'top' 'np' 'lyrics';
   }
-  :root[data-layout='split'] .np-inner { width: 100%; flex-direction: row; align-items: center; gap: 14px; margin-bottom: 14px; }
-  :root[data-layout='split'] .art-wrap { --art-r: 12px; width: 76px; margin: 0; -webkit-box-reflect: unset; }
-  :root[data-layout='split'] .np-body { flex: 1; gap: 10px; }
-  :root[data-layout='split'] .np-album { display: none; }
-  :root[data-layout='split'] .np-title { font-size: calc(19px * var(--title-k)); }
-  :root[data-layout='split'] .np-artist { font-size: calc(15px * var(--artist-k)); margin-top: 2px; }
-  :root[data-layout='split'] .controls { display: none; }
+  :root[data-layout='split'][data-show-lyrics='true'] .np-inner { width: 100%; flex-direction: row; align-items: center; gap: 14px; margin-bottom: 14px; }
+  :root[data-layout='split'][data-show-lyrics='true'] .art-wrap { --art-r: 12px; width: 76px; margin: 0; -webkit-box-reflect: unset; }
+  :root[data-layout='split'][data-show-lyrics='true'] .np-body { flex: 1; gap: 10px; }
+  :root[data-layout='split'][data-show-lyrics='true'] .np-album { display: none; }
+  :root[data-layout='split'][data-show-lyrics='true'] .np-title { font-size: calc(19px * var(--title-k)); }
+  :root[data-layout='split'][data-show-lyrics='true'] .np-artist { font-size: calc(15px * var(--artist-k)); margin-top: 2px; }
+  :root[data-layout='split'][data-show-lyrics='true'] .controls { display: none; }
 
-  :root[data-layout='lyrics'] .np-body,
-  :root[data-layout='stage'] .np-body { grid-template-columns: minmax(0, 1fr) auto; }
-  :root[data-layout='lyrics'] .progress,
-  :root[data-layout='stage'] .progress { display: none; }
-  :root[data-layout='lyrics'] .ctl-skip,
-  :root[data-layout='stage'] .ctl-skip { display: none; }
+  :root:is([data-layout='lyrics'], [data-layout='stage'])[data-show-lyrics='true'] .np-body { grid-template-columns: minmax(0, 1fr) auto; }
+  :root:is([data-layout='lyrics'], [data-layout='stage'])[data-show-lyrics='true'] .progress { display: none; }
+  :root:is([data-layout='lyrics'], [data-layout='stage'])[data-show-lyrics='true'] .ctl-skip { display: none; }
 
   .connect-card { flex-direction: column; padding: 24px; text-align: center; }
   .connect-steps li { text-align: left; }
   .upnext { display: none; }
+}
+
+/* ── Short landscape screens (phones on their side, small windows) ──────── */
+
+@media (max-height: 600px) and (min-aspect-ratio: 4/3) {
+  /* Cover: artwork and details on the left, the current lines beside them. */
+  :root[data-layout='cover'][data-show-lyrics='true'] .player {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas: 'top top' 'np lyrics';
+  }
+  :root[data-layout='cover'][data-show-lyrics='true'] .art-wrap { width: min(100%, max(96px, calc(var(--vh100) * 0.9 - 218px))); }
+  :root[data-layout='cover'][data-show-lyrics='true'] .lyrics { align-self: center; max-height: 100%; margin-top: 0; }
+  @media (min-width: 821px) {
+    /* Room for the halo's reach so it stays clear of the brand above. */
+    :root[data-visualizer='halo'][data-layout='cover'][data-show-lyrics='true'] .art-wrap { width: min(100%, max(96px, calc((var(--vh100) - 254px) / 1.4))); }
+  }
+
+  /* Artwork-only: artwork beside the details instead of stacked above them. */
+  :root[data-show-lyrics='false'] .player .np-inner { width: min(100%, 980px); flex-direction: row; align-items: center; gap: clamp(20px, 4vw, 56px); }
+  :root[data-show-lyrics='false'] .player .art-wrap { --aw: min(44%, max(110px, calc(var(--vh100) - 150px))); width: var(--aw); margin: 0; -webkit-box-reflect: unset; }
+  :root[data-show-lyrics='false'] .player .np-body { flex: 1; }
+  /* The halo reaches 20% past the artwork on every side; keep all of it on screen. */
+  :root[data-visualizer='halo']:is([data-layout='split'], [data-layout='cover'])[data-show-lyrics='false'] .player .art-wrap {
+    --aw: min(36%, max(96px, calc((var(--vh100) - 96px) / 1.4)));
+    margin: 0 calc(var(--aw) * 0.2);
+  }
+}
+
+/* Very short and wide (a half-open car browser card): the artwork moves beside the title so
+   progress and controls still fit under it. */
+@media (max-height: 480px) and (min-width: 821px) {
+  :root[data-layout='split'][data-show-lyrics='true'] .np-inner {
+    width: min(100%, 440px);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: 'art meta' 'progress progress' 'controls controls';
+    align-items: center;
+    column-gap: 18px;
+    row-gap: clamp(10px, 2.4vh, 18px);
+  }
+  :root[data-layout='split'][data-show-lyrics='true'] .np-body { display: contents; }
+  :root[data-layout='split'][data-show-lyrics='true'] .art-wrap { grid-area: art; width: clamp(72px, calc(var(--vh100) * 0.5 - 110px), 140px); margin: 0; -webkit-box-reflect: unset; }
+  :root[data-layout='split'][data-show-lyrics='true'] .meta { grid-area: meta; }
+  :root[data-layout='split'][data-show-lyrics='true'] .progress { grid-area: progress; }
+  :root[data-layout='split'][data-show-lyrics='true'] .controls { grid-area: controls; }
+}
+
+/* Short and wide entry screen: brand and buttons on the left, the QR card on the right.
+   The 1fr spacer rows center it, and collapse to zero before anything could leave the top. */
+@media (max-height: 560px) and (min-width: 821px) {
+  .screen.connect {
+    display: grid;
+    grid-template-columns: auto minmax(0, max-content);
+    grid-template-rows: minmax(0, 1fr) auto auto auto auto minmax(0, 1fr);
+    justify-content: center;
+    align-items: center;
+    column-gap: clamp(32px, 5vw, 72px);
+    row-gap: 0;
+  }
+  .screen.connect > * { grid-column: 1; margin: 0; }
+  .connect .hero { grid-row: 2; }
+  .connect .connect-actions { grid-row: 3; margin-top: clamp(16px, 3.4vh, 26px); flex-direction: column; align-items: stretch; justify-self: center; width: min(100%, 300px); }
+  .connect .notice { grid-row: 4; margin-top: 12px; }
+  .connect .fineprint { grid-row: 5; margin-top: clamp(12px, 2.6vh, 20px); }
+  .connect .connect-card { grid-column: 2; grid-row: 2 / 6; }
+  .connect .connect-steps { min-width: 0; }
 }
