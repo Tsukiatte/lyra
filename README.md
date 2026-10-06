@@ -26,6 +26,9 @@ Beautiful, perfectly synced lyrics for whatever's playing on Spotify, built for 
   glow, blur, timing offset, accent color, motion, low power mode and more.
 - **Scan-to-connect**: the car shows a QR code; you sign in on your phone and the session is handed
   to the car over an end-to-end encrypted link. No typing passwords on the touchscreen.
+- **Fits every screen**: from a phone to a 17″ car display, down to a short browser window.
+  `tesla.html` shows the live app at the exact size a Tesla's browser gives a page (1255 × 758
+  on software 2026.26 and later), with switches for car, view, style and visualizer.
 - **No server, no build step**: plain HTML/CSS/JS you can host anywhere for free.
 
 Lyrics come from [LRCLIB](https://lrclib.net), a free community-made library. Playback data comes

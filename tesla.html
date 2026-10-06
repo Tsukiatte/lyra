@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lyra Car Preview</title>
+  <meta name="description" content="Lyra at the exact size of a Tesla's browser, live and interactive.">
+  <meta name="theme-color" content="#060608">
+  <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://api.fontshare.com" crossorigin>
+  <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin>
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@1&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400..600&display=swap">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #060608;
+      --ink: #f5f5f7;
+      --ink-2: rgba(245, 245, 247, 0.66);
+      --ink-3: rgba(245, 245, 247, 0.42);
+      --line: rgba(255, 255, 255, 0.08);
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --bezel: 12px;
+      --glow: 150, 130, 255;
+      --w: 1255;
+      --h: 758;
+      --k: 0.6;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: flex;
+      flex-direction: column;
+      color: var(--ink);
+      font-family: 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+      font-weight: 500;
+      -webkit-font-smoothing: antialiased;
+      background:
+        radial-gradient(70% 45% at 50% 108%, rgba(var(--glow), 0.12), transparent 70%),
+        radial-gradient(80% 50% at 12% -10%, rgba(120, 90, 220, 0.14), transparent 70%),
+        var(--bg);
+      transition: background 1.2s ease;
+    }
+    a { color: inherit; }
+
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 24px 6px; }
+    .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .brand img { width: 32px; height: 32px; border-radius: 9px; }
+    .brand span { font-size: 23px; font-weight: 900; letter-spacing: -0.045em; }
+    .brand small { margin-left: 4px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink-3); }
+    .links { display: flex; gap: 8px; }
+    .link {
+      height: 38px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 16px;
+      border-radius: 99px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--ink-2);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: inset 0 0 0 1px var(--line), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .link:hover { color: var(--ink); background: rgba(255, 255, 255, 0.1); }
+
+    .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px 22px; padding: 10px 24px 0; }
+    .group { display: flex; align-items: center; gap: 10px; }
+    .label { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-3); }
+    .seg {
+      display: flex;
+      gap: 2px;
+      padding: 3px;
+      border-radius: 99px;
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 0 0 1px var(--line);
+    }
+    .seg button, .chip {
+      height: 32px;
+      padding: 0 13px;
+      border: 0;
+      border-radius: 99px;
+      font: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      white-space: nowrap;
+      color: var(--ink-2);
+      background: transparent;
+      cursor: pointer;
+      transition: color 0.25s ease, background 0.35s var(--ease), box-shadow 0.35s var(--ease);
+    }
+    .seg button:hover, .chip:hover { color: var(--ink); }
+    .seg button[aria-pressed='true'], .chip[aria-pressed='true'] {
+      color: #0b0b10;
+      background: linear-gradient(180deg, #ffffff 0%, #ececf1 60%, #d9d9e1 100%);
+      box-shadow: inset 0 1px 0 #fff, 0 6px 16px -8px rgba(0, 0, 0, 0.8);
+    }
+    .chip { background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px var(--line); }
+    .size { display: flex; align-items: center; gap: 6px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; color: var(--ink-3); }
+    .size input {
+      width: 64px;
+      height: 32px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 10px;
+      font: inherit;
+      font-size: 13px;
+      text-align: center;
+      color: var(--ink);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: inset 0 0 0 1px var(--line);
+      -moz-appearance: textfield;
+    }
+    .size input::-webkit-inner-spin-button { display: none; }
+    .size input:focus { outline: none; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
+
+    .stage { flex: 1; min-height: 360px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 22px 24px 26px; }
+    .display {
+      position: relative;
+      flex: none;
+      padding: var(--bezel);
+      border-radius: calc(14px + var(--bezel));
+      background: linear-gradient(180deg, #19191d, #0a0a0c);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.07),
+        inset 0 1px 0 rgba(255, 255, 255, 0.09),
+        0 50px 110px -40px rgba(0, 0, 0, 0.95),
+        0 40px 160px -70px rgba(var(--glow), 0.6);
+      transition: box-shadow 1.2s ease;
+    }
+    /* A soft pool of light under the screen, tinted by what's playing. */
+    .display::after {
+      content: '';
+      position: absolute;
+      left: 10%;
+      right: 10%;
+      bottom: -46px;
+      height: 46px;
+      border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(var(--glow), 0.22), transparent);
+      filter: blur(8px);
+      pointer-events: none;
+    }
+    .screen {
+      position: relative;
+      width: calc(var(--w) * var(--k) * 1px);
+      height: calc(var(--h) * var(--k) * 1px);
+      overflow: hidden;
+      border-radius: 14px;
+      background: #000;
+      transition: width 0.7s var(--ease), height 0.7s var(--ease);
+    }
+    .screen iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: calc(var(--w) * 1px);
+      height: calc(var(--h) * 1px);
+      border: 0;
+      transform: scale(var(--k));
+      transform-origin: 0 0;
+      transition: transform 0.7s var(--ease);
+    }
+    /* Glass: a faint diagonal glare and edge, never in the way of taps. */
+    .screen::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(118deg, rgba(255, 255, 255, 0.075) 0%, rgba(255, 255, 255, 0.02) 26%, transparent 40%);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+    .caption { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 14px; margin: 0; font-size: 14px; color: var(--ink-3); text-align: center; }
+    .caption b { font-family: 'Geist Mono', ui-monospace, monospace; font-size: 13px; font-weight: 500; color: var(--ink); }
+
+    @media (max-width: 720px) {
+      .top { padding: 14px 16px 4px; }
+      .controls { padding: 8px 16px 0; gap: 8px 14px; }
+      .label { display: none; }
+      .stage { padding: 18px 16px 22px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./"><img src="assets/icon.svg" alt=""><span>Lyra</span><small>Car preview</small></a>
+    <nav class="links"><a class="link" href="./styles.html">Styles</a><a class="link" href="./">Open Lyra</a></nav>
+  </header>
+
+  <section class="controls" aria-label="Preview options">
+    <div class="group"><span class="label">Car</span><div class="seg" id="car"></div></div>
+    <div class="group"><span class="label">Size</span><div class="size"><input id="w" type="number" min="320" max="3200" aria-label="Width in CSS pixels"> × <input id="h" type="number" min="320" max="2000" aria-label="Height in CSS pixels"></div></div>
+    <div class="group"><span class="label">Screen</span><div class="seg" id="screen"></div></div>
+    <div class="group"><span class="label">View</span><div class="seg" id="layout"></div></div>
+    <div class="group"><span class="label">Visualizer</span><div class="seg" id="visualizer"></div></div>
+    <div class="group" id="theme-group" hidden><span class="label">Style</span><div class="seg" id="theme"></div></div>
+    <button class="chip" id="immersive" type="button" aria-pressed="false">Immersive</button>
+  </section>
+
+  <main class="stage" id="stage">
+    <div class="display" id="display">
+      <div class="screen"><iframe id="frame" title="Lyra at car size" src="./?demo&amp;embed&amp;t=29000"></iframe></div>
+    </div>
+    <p class="caption" id="caption"><b id="dims">1255 × 758</b><span id="note"></span><span id="zoom"></span></p>
+  </main>
+
+  <script type="module">
+    // CSS pixel sizes the car's browser gives a page. Since software 2026.26 the browser zooms
+    // pages 1.53×, so a 1920 × 1200 screen now measures 1255 × 784 and the full-screen browser 1255 × 758.
+    const CARS = [
+      { id: 'm3y', label: 'Model 3 · Y', w: 1255, h: 758, note: 'Full-screen browser, software 2026.26 and later (measured)' },
+      { id: 'sx', label: 'Model S · X', w: 1438, h: 824, note: '17″ 2200 × 1300 screen at the same zoom (estimated)' },
+      { id: 'window', label: 'Windowed', w: 837, h: 620, note: 'Browser next to the car view, about ⅔ of the screen (estimated)' },
+      { id: 'classic', label: 'Before 2026.26', w: 1920, h: 1160, note: 'Full-screen browser before the zoom change (measured)' },
+    ];
+    const SCREENS = [['player', 'Playing'], ['signin', 'Sign-in']];
+    const LAYOUTS = [['split', 'Split'], ['lyrics', 'Lyrics'], ['cover', 'Cover'], ['stage', 'Stage']];
+    const VISUALIZERS = [['halo', 'Halo'], ['bars', 'Bars'], ['wave', 'Wave'], ['off', 'Off']];
+    const SRC = { player: './?demo&embed&t=29000', signin: './?embed' };
+
+    const state = { car: 'm3y', w: 1255, h: 758, screen: 'player', layout: 'split', visualizer: 'halo', theme: 'lumiere' };
+    const $ = (id) => document.getElementById(id);
+    const frame = $('frame');
+    const stage = $('stage');
+    const display = $('display');
+    const rootStyle = document.documentElement.style;
+    const lyra = () => frame.contentWindow?.lyra;
+
+    function segment(el, options, onPick) {
+      el.replaceChildren(...options.map(([value, label]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.value = value;
+        button.textContent = label;
+        button.addEventListener('click', () => onPick(value));
+        return button;
+      }));
+    }
+    const mark = (el, value) => { for (const b of el.children) b.setAttribute('aria-pressed', String(b.dataset.value === value)); };
+
+    // Scale the car-sized screen to fit this window, never above 100%.
+    function fit() {
+      const cs = getComputedStyle(stage);
+      const bezel = parseFloat(getComputedStyle(display).paddingLeft) * 2;
+      const availW = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - bezel;
+      const availH = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - bezel - $('caption').offsetHeight - parseFloat(cs.rowGap || 0);
+      const k = Math.max(0.12, Math.min(1, availW / state.w, availH / state.h));
+      rootStyle.setProperty('--w', state.w);
+      rootStyle.setProperty('--h', state.h);
+      rootStyle.setProperty('--k', k.toFixed(4));
+      $('zoom').textContent = `Shown at ${Math.round(k * 100)}%`;
+    }
+
+    function renderSize() {
+      const car = CARS.find((c) => c.id === state.car);
+      $('dims').textContent = `${state.w} × ${state.h}`;
+      $('note').textContent = car ? car.note : 'Custom size';
+      $('w').value = state.w;
+      $('h').value = state.h;
+      mark($('car'), state.car);
+      fit();
+    }
+
+    // Push the chosen options into the live app inside the frame.
+    function sync(what = ['theme', 'layout', 'visualizer']) {
+      const app = lyra();
+      if (!app) return;
+      if (what.includes('theme')) app.applyTheme(state.theme);
+      if (what.includes('layout')) app.settings.set('layout', state.layout);
+      if (what.includes('visualizer')) app.settings.set('visualizer', state.visualizer);
+    }
+
+    segment($('car'), CARS.map((c) => [c.id, c.label]), (id) => {
+      const car = CARS.find((c) => c.id === id);
+      Object.assign(state, { car: id, w: car.w, h: car.h });
+      renderSize();
+    });
+    segment($('screen'), SCREENS, (value) => {
+      if (state.screen === value) return;
+      state.screen = value;
+      mark($('screen'), value);
+      $('immersive').hidden = value !== 'player';
+      frame.src = SRC[value];
+    });
+    segment($('layout'), LAYOUTS, (value) => { state.layout = value; mark($('layout'), value); sync(['layout']); });
+    segment($('visualizer'), VISUALIZERS, (value) => { state.visualizer = value; mark($('visualizer'), value); sync(['visualizer']); });
+    mark($('screen'), state.screen);
+    mark($('layout'), state.layout);
+    mark($('visualizer'), state.visualizer);
+
+    for (const id of ['w', 'h']) {
+      $(id).addEventListener('change', () => {
+        const max = id === 'w' ? 3200 : 2000;
+        const value = Math.round(Math.min(max, Math.max(320, Number($(id).value) || state[id])));
+        state[id] = value;
+        const match = CARS.find((c) => c.w === state.w && c.h === state.h);
+        state.car = match ? match.id : 'custom';
+        renderSize();
+      });
+    }
+
+    $('immersive').addEventListener('click', () => {
+      const win = frame.contentWindow;
+      if (!win) return;
+      win.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'i', bubbles: true }));
+      setTimeout(watch, 60);
+    });
+
+    frame.addEventListener('load', () => {
+      const app = lyra();
+      if (!app) return;
+      // Styles come from the app itself, so this list never drifts from it.
+      if (!$('theme').children.length) {
+        segment($('theme'), app.themes.map((t) => [t.id, t.name]), (id) => { state.theme = id; mark($('theme'), id); sync(['theme']); });
+        mark($('theme'), state.theme);
+        $('theme-group').hidden = false;
+      }
+      sync();
+    });
+
+    // Tint the screen's glow with the app's current accent, and keep the immersive chip honest.
+    function watch() {
+      const doc = frame.contentDocument;
+      if (!doc) return;
+      const rgb = getComputedStyle(doc.documentElement).getPropertyValue('--accent-rgb').trim();
+      if (/^\d+\s*,\s*\d+\s*,\s*\d+$/.test(rgb)) rootStyle.setProperty('--glow', rgb);
+      $('immersive').setAttribute('aria-pressed', String(Boolean(doc.querySelector('.player.is-immersive'))));
+    }
+    setInterval(watch, 1200);
+
+    new ResizeObserver(fit).observe(stage);
+    renderSize();
+  </script>
+</body>
+</html>

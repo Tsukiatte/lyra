@@ -16,6 +16,8 @@ const params = new URLSearchParams(location.search);
 
 if (/\bTesla\b/i.test(navigator.userAgent)) root.dataset.tesla = 'true';
 if (EMBED) root.dataset.embed = 'true';
+// Embedded previews (the styles gallery, the car preview) can drive settings live; nothing is saved.
+if (EMBED) window.lyra = { settings, applyTheme, themes: THEMES.map(({ id, name }) => ({ id, name })) };
 
 // ?theme=noir switches style (the styles gallery links here); embedded previews don't save it.
 const linkedTheme = params.get('theme');
